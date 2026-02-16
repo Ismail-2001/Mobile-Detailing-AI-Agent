@@ -1,0 +1,140 @@
+.container {
+    overflow-x: auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header h2 {
+    font-size: 1.25rem;
+}
+
+.filterSelect {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: white;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    color: #64748b;
+    font-weight: 600;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.table td {
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.customerInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.customerInfo strong {
+    color: var(--obsidian);
+}
+
+.customerInfo span {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.badge {
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.dateTime {
+    display: flex;
+    flex-direction: column;
+}
+
+.date {
+    font-weight: 500;
+}
+
+.time {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.price {
+    font-weight: 700;
+    color: var(--terracotta);
+}
+
+.actionBtn {
+    background: transparent;
+    color: #94a3b8;
+}
+
+.actionBtn:hover {
+    color: var(--obsidian);
+}
+
+.refreshBtn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    margin-right: 10px;
+}
+
+.spinning {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    color: #94a3b8;
+    font-style: italic;
+}
