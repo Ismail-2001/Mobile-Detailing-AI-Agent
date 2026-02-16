@@ -1,11 +1,12 @@
 import styles from './Sidebar.module.css';
-import { LayoutDashboard, Calendar, BarChart3, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, BarChart3, Settings, LogOut, Brain } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
     const menuItems = [
         { id: 'bookings', label: 'Bookings', icon: LayoutDashboard },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        { id: 'intelligence', label: 'Intelligence', icon: Brain },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
 

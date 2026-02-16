@@ -3,13 +3,22 @@ import { MAYA_SYSTEM_PROMPT } from '@/lib/ai-agent';
 import { MAYA_TOOLS, executeTool } from '@/lib/tools';
 import { supabase } from '@/lib/supabase';
 
-const apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
-const baseURL = process.env.DEEPSEEK_API_KEY ? 'https://api.deepseek.com' : undefined;
+const deepseek = new OpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY || 'dummy',
+    baseURL: 'https://api.deepseek.com',
+});
 
 const openai = new OpenAI({
-    apiKey: apiKey || 'dummy-key',
-    baseURL: baseURL,
+    apiKey: process.env.OPENAI_API_KEY || 'dummy',
 });
+
+function getClient(model) {
+    if (model.includes('deepseek')) return deepseek;
+    return openai;
+}
+
+const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
+const hasOpenAI = !!process.env.OPENAI_API_KEY;
 
 async function logEvent(sessionId, type, payload) {
     if (supabase) {
@@ -27,10 +36,10 @@ export async function POST(req) {
     try {
         const { messages: currentMessages } = await req.json();
 
-        if (!apiKey) {
+        if (!hasDeepSeek && !hasOpenAI) {
             return Response.json({
                 role: 'assistant',
-                content: "Maya's AI engine is currently in simulation mode. Connect an API key to enable full autonomy.",
+                content: "Maya's AI engine is currently in simulation mode. Connect an API key (DeepSeek or OpenAI) to enable full autonomy.",
                 mock: true
             });
         }
@@ -62,11 +71,32 @@ export async function POST(req) {
                 Array.isArray(m.content) && m.content.some(c => c.type === 'image_url')
             );
 
-            const model = hasImages
-                ? "gpt-4o" // Force vision model
-                : (process.env.DEEPSEEK_API_KEY ? "deepseek-chat" : "gpt-4o");
+            let model = "gpt-4o";
+            if (hasImages) {
+                if (hasOpenAI) {
+                    model = "gpt-4o";
+                } else if (hasDeepSeek) {
+                    // Fallback: Strip images for DeepSeek
+                    model = "deepseek-chat";
+                    apiMessages = apiMessages.map(m => {
+                        if (Array.isArray(m.content)) {
+                            const textPart = m.content.find(c => c.type === 'text')?.text;
+                            return { ...m, content: (textPart || "") + "\n(Note: User uploaded a photo, but vision is disabled. Ask them for vehicle details manually.)" };
+                        }
+                        return m;
+                    });
+                } else {
+                    return Response.json({
+                        role: 'assistant',
+                        content: "I see you've uploaded a photo! To analyze it, I need an OpenAI API key. Please add it to the environment config, and I'll be able to see exactly what you see."
+                    });
+                }
+            } else {
+                model = hasDeepSeek ? "deepseek-chat" : "gpt-4o";
+            }
 
-            const response = await openai.chat.completions.create({
+            const client = getClient(model);
+            const response = await client.chat.completions.create({
                 model: model,
                 messages: apiMessages,
                 tools: MAYA_TOOLS,

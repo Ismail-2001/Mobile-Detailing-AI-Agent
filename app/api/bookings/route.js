@@ -1,6 +1,7 @@
 import { createBooking, getBookings } from '@/lib/supabase';
 import { createCalendarEvent } from '@/lib/calendar';
 import { triggerLeadAlerts } from '@/lib/twilio';
+import { supabase } from '@/lib/supabase';
 
 import { checkAvailability } from '@/lib/calendar';
 
@@ -15,7 +16,24 @@ export async function GET(req) {
 
     const { data, error } = await getBookings();
     if (error) return Response.json({ error }, { status: 500 });
-    return Response.json(data);
+
+    // Check if calendar is connected by verifying tokens exist
+    let isCalendarConnected = false;
+    try {
+        const { data: config } = await supabase
+            .from('application_config')
+            .select('data')
+            .eq('id', 'google_tokens')
+            .single();
+        isCalendarConnected = !!config;
+    } catch (e) {
+        console.error("Config check failed:", e);
+    }
+
+    return Response.json({
+        bookings: data || [],
+        isCalendarConnected
+    });
 }
 
 

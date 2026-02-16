@@ -123,13 +123,51 @@
 }
 
 /* Image Upload Support */
+.imageWrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .uploadedImage {
     width: 100%;
     max-width: 300px;
-    border-radius: 12px;
-    margin-bottom: 10px;
     display: block;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scanningLaser {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--gold);
+    box-shadow: 0 0 15px var(--gold);
+    z-index: 10;
+    animation: scan 2s infinite ease-in-out;
+}
+
+@keyframes scan {
+    0% {
+        top: 0;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
 }
 
 .imagePreviewContainer {

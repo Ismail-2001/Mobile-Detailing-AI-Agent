@@ -55,9 +55,18 @@ export default function BookingSummary({ data, onConfirm, onCancel }) {
                 >
                     Finalize Booking
                 </button>
-                <button className={styles.cancelBtn} onClick={onCancel}>
-                    Adjust Details
-                </button>
+                <div className={styles.secondaryActions}>
+                    <button className={styles.cancelBtn} onClick={onCancel}>
+                        Adjust Details
+                    </button>
+                    <a
+                        href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '15074797804'}?text=Hi, I'm booking a ${data.service} for my ${data.vehicle_type}. I have a few custom questions.`}
+                        target="_blank"
+                        className={styles.waBtn}
+                    >
+                        Speak to Specialist
+                    </a>
+                </div>
             </div>
 
             <p className={styles.note}>

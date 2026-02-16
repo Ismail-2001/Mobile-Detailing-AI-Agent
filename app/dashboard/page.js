@@ -5,6 +5,9 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import BookingsTable from '@/components/dashboard/BookingsTable';
 import Analytics from '@/components/dashboard/Analytics';
 import CalendarGrid from '@/components/dashboard/CalendarGrid';
+import StatCards from '@/components/dashboard/StatCards';
+import ReasoningLog from '@/components/dashboard/ReasoningLog';
+import Settings from '@/components/dashboard/Settings';
 import styles from './Dashboard.module.css';
 import { Lock } from 'lucide-react';
 
@@ -14,6 +17,7 @@ export default function Dashboard() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [bookings, setBookings] = useState([]);
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -30,16 +34,23 @@ export default function Dashboard() {
             setIsAuthenticated(true);
         }
 
-        const checkStatus = async () => {
+        const fetchData = async () => {
             try {
                 const res = await fetch('/api/bookings');
                 const data = await res.json();
-                if (data.availability) setIsConnected(true);
+
+                if (data.bookings) {
+                    setBookings(data.bookings);
+                }
+
+                if (data.isCalendarConnected) {
+                    setIsConnected(true);
+                }
             } catch (e) {
-                console.error("Connection check failed:", e);
+                console.error("Data fetch failed:", e);
             }
         };
-        checkStatus();
+        fetchData();
     }, []);
 
     if (!isAuthenticated) {
@@ -81,25 +92,48 @@ export default function Dashboard() {
                     </div>
                 </header>
 
-                <div className={styles.container}>
-                    {activeTab === 'bookings' && <BookingsTable />}
-                    {activeTab === 'analytics' && <Analytics />}
-                    {activeTab === 'calendar' && (
-                        isConnected ? (
-                            <CalendarGrid />
-                        ) : (
-                            <div className={styles.placeholder}>
-                                <h3>Calendar Sync</h3>
-                                <p>Connect your business calendar to enable Maya to check your availability in real-time.</p>
-                                <a
-                                    href="/api/auth/google"
-                                    className={styles.connectBtn}
-                                    target="_blank"
-                                >
-                                    Connect Google Calendar
-                                </a>
+                <div className={styles.dashboardBody}>
+                    {activeTab === 'bookings' && (
+                        <>
+                            <StatCards bookings={bookings} />
+                            <div className={styles.container}>
+                                <BookingsTable bookings={bookings} />
                             </div>
-                        )
+                        </>
+                    )}
+                    {activeTab === 'analytics' && (
+                        <div className={styles.container}>
+                            <Analytics />
+                        </div>
+                    )}
+                    {activeTab === 'intelligence' && (
+                        <div className={styles.container}>
+                            <ReasoningLog />
+                        </div>
+                    )}
+                    {activeTab === 'settings' && (
+                        <div className={styles.container}>
+                            <Settings />
+                        </div>
+                    )}
+                    {activeTab === 'calendar' && (
+                        <div className={styles.container}>
+                            {isConnected ? (
+                                <CalendarGrid />
+                            ) : (
+                                <div className={styles.placeholder}>
+                                    <h3>Calendar Sync</h3>
+                                    <p>Connect your business calendar to enable Maya to check your availability in real-time.</p>
+                                    <a
+                                        href="/api/auth/google"
+                                        className={styles.connectBtn}
+                                        target="_blank"
+                                    >
+                                        Connect Google Calendar
+                                    </a>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </main>

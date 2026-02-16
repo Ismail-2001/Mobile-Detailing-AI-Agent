@@ -183,11 +183,17 @@ export default function ChatInterface({ onClose, initialMessage }) {
                                 {Array.isArray(msg.content) ? (
                                     <>
                                         {msg.content.find(c => c.type === 'image_url') && (
-                                            <img
-                                                src={msg.content.find(c => c.type === 'image_url').image_url.url}
-                                                alt="Vehicle"
-                                                className={styles.uploadedImage}
-                                            />
+                                            <div className={styles.imageWrapper}>
+                                                <img
+                                                    src={msg.content.find(c => c.type === 'image_url').image_url.url}
+                                                    alt="Vehicle"
+                                                    className={styles.uploadedImage}
+                                                />
+                                                {/* Only show laser on the last user message's image while Maya is thinking */}
+                                                {isTyping && i === messages.length - 1 && (
+                                                    <div className={styles.scanningLaser} />
+                                                )}
+                                            </div>
                                         )}
                                         <p>{msg.content.find(c => c.type === 'text')?.text}</p>
                                     </>
