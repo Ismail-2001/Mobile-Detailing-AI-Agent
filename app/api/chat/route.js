@@ -52,7 +52,7 @@ export async function POST(req) {
             day: 'numeric'
         });
 
-        let apiMessages = [
+        const apiMessages = [
             {
                 role: "system",
                 content: `${MAYA_SYSTEM_PROMPT}\n\n# CONTEXT\nToday is ${currentDate}. Use this to calculate relative dates like 'tomorrow' or 'next week'.`
@@ -66,35 +66,7 @@ export async function POST(req) {
         const maxIterations = 5;
 
         while (iteration < maxIterations) {
-            // Check for images to decide on vision model
-            const hasImages = apiMessages.some(m =>
-                Array.isArray(m.content) && m.content.some(c => c.type === 'image_url')
-            );
-
-            let model = "gpt-4o";
-            if (hasImages) {
-                if (hasOpenAI) {
-                    model = "gpt-4o";
-                } else if (hasDeepSeek) {
-                    // Fallback: Strip images for DeepSeek
-                    model = "deepseek-chat";
-                    apiMessages = apiMessages.map(m => {
-                        if (Array.isArray(m.content)) {
-                            const textPart = m.content.find(c => c.type === 'text')?.text;
-                            return { ...m, content: (textPart || "") + "\n(Note: User uploaded a photo, but vision is disabled. Ask them for vehicle details manually.)" };
-                        }
-                        return m;
-                    });
-                } else {
-                    return Response.json({
-                        role: 'assistant',
-                        content: "I see you've uploaded a photo! To analyze it, I need an OpenAI API key. Please add it to the environment config, and I'll be able to see exactly what you see."
-                    });
-                }
-            } else {
-                model = hasDeepSeek ? "deepseek-chat" : "gpt-4o";
-            }
-
+            const model = hasDeepSeek ? "deepseek-chat" : "gpt-4o";
             const client = getClient(model);
             const response = await client.chat.completions.create({
                 model: model,

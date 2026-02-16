@@ -122,78 +122,6 @@
     border: 1px solid var(--glass-border);
 }
 
-/* Image Upload Support */
-.imageWrapper {
-    position: relative;
-    overflow: hidden;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    display: inline-block;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.uploadedImage {
-    width: 100%;
-    max-width: 300px;
-    display: block;
-}
-
-.scanningLaser {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: var(--gold);
-    box-shadow: 0 0 15px var(--gold);
-    z-index: 10;
-    animation: scan 2s infinite ease-in-out;
-}
-
-@keyframes scan {
-    0% {
-        top: 0;
-        opacity: 0;
-    }
-
-    10% {
-        opacity: 1;
-    }
-
-    90% {
-        opacity: 1;
-    }
-
-    100% {
-        top: 100%;
-        opacity: 0;
-    }
-}
-
-.imagePreviewContainer {
-    padding: 10px 24px;
-    background: rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border-top: 1px solid var(--glass-border);
-}
-
-.imagePreview {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid var(--gold);
-}
-
-.removeImage {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--white);
-    padding: 4px;
-    border-radius: 50%;
-}
-
 .inputArea {
     padding: 20px 24px;
     background: var(--obsidian);
@@ -201,22 +129,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-}
-
-.attachBtn {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--platinum);
-    padding: 10px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--glass-border);
-}
-
-.attachBtn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--gold);
 }
 
 .inputArea input[type="text"] {
@@ -256,6 +168,11 @@
     color: #666;
     box-shadow: none;
     cursor: not-allowed;
+}
+
+.typing {
+    display: flex;
+    align-items: center;
 }
 
 .typing span {

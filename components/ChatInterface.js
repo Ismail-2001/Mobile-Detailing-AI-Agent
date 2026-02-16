@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import styles from './ChatInterface.module.css';
-import { Send, X, Bot, Image, Paperclip } from 'lucide-react';
+import { Send, X, Bot } from 'lucide-react';
 import BookingSummary from './BookingSummary';
 import { supabase } from '@/lib/supabase';
 
@@ -15,47 +15,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
     const [bookingData, setBookingData] = useState(null);
     const [showSummary, setShowSummary] = useState(false);
     const [sessionId] = useState(() => 'sess_' + (typeof window !== 'undefined' ? window.crypto.randomUUID() : Math.random().toString(36).substr(2, 9)));
-    const [previewImage, setPreviewImage] = useState(null);
-    const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
-
-    const handleFileClick = () => fileInputRef.current?.click();
-
-    const compressImage = (file) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new window.Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1024;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    if (img.width > MAX_WIDTH) {
-                        canvas.width = MAX_WIDTH;
-                        canvas.height = img.height * scaleSize;
-                    } else {
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                    }
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8));
-                };
-            };
-        });
-    };
-
-    const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setIsTyping(true); // Show typing while compressing
-            const compressed = await compressImage(file);
-            setPreviewImage(compressed);
-            setIsTyping(false);
-        }
-    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,7 +27,6 @@ export default function ChatInterface({ onClose, initialMessage }) {
 
     useEffect(() => {
         // --- STATE SOVEREIGNTY FIX ---
-        // Ensure the user has an anonymous authenticated session for RLS protection
         const initSession = async () => {
             if (supabase) {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -85,22 +44,16 @@ export default function ChatInterface({ onClose, initialMessage }) {
 
     const handleSend = async (text) => {
         const messageText = text || input;
-        if (!messageText.trim() && !previewImage) return;
+        if (!messageText.trim()) return;
 
         const newUserMessage = {
             role: 'user',
-            content: previewImage
-                ? [
-                    { type: 'text', text: messageText || "Analyzing this vehicle..." },
-                    { type: 'image_url', image_url: { url: previewImage } }
-                ]
-                : messageText
+            content: messageText
         };
 
         const updatedMessages = [...messages, newUserMessage];
         setMessages(updatedMessages);
         setInput('');
-        setPreviewImage(null);
         setIsTyping(true);
 
         try {
@@ -180,24 +133,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
                     {messages.map((msg, i) => (
                         <div key={i} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : styles.botRow}`}>
                             <div className={styles.messageBubble}>
-                                {Array.isArray(msg.content) ? (
-                                    <>
-                                        {msg.content.find(c => c.type === 'image_url') && (
-                                            <div className={styles.imageWrapper}>
-                                                <img
-                                                    src={msg.content.find(c => c.type === 'image_url').image_url.url}
-                                                    alt="Vehicle"
-                                                    className={styles.uploadedImage}
-                                                />
-                                                {/* Only show laser on the last user message's image while Maya is thinking */}
-                                                {isTyping && i === messages.length - 1 && (
-                                                    <div className={styles.scanningLaser} />
-                                                )}
-                                            </div>
-                                        )}
-                                        <p>{msg.content.find(c => c.type === 'text')?.text}</p>
-                                    </>
-                                ) : msg.content}
+                                {msg.content}
                             </div>
                         </div>
                     ))}
@@ -218,28 +154,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {previewImage && (
-                    <div className={styles.imagePreviewContainer}>
-                        <img src={previewImage} alt="Preview" className={styles.imagePreview} />
-                        <button onClick={() => setPreviewImage(null)} className={styles.removeImage}><X size={16} /></button>
-                    </div>
-                )}
-
                 <div className={styles.inputArea}>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                    />
-                    <button
-                        className={styles.attachBtn}
-                        onClick={handleFileClick}
-                        title="Upload vehicle photo for auto-analysis"
-                    >
-                        <Image size={20} />
-                    </button>
                     <input
                         type="text"
                         placeholder={isTyping ? "Maya is thinking..." : "Type your message..."}
@@ -251,7 +166,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
                     <button
                         onClick={() => handleSend()}
                         className={styles.sendBtn}
-                        disabled={(!input.trim() && !previewImage) || isTyping}
+                        disabled={!input.trim() || isTyping}
                     >
                         {isTyping ? <div className={styles.spinner}></div> : <Send size={20} />}
                     </button>
