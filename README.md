@@ -1,108 +1,233 @@
-# Mr. Cleaner Mobile Detailing Agent
+<div align="center">
 
-## Executive Overview
-Mr. Cleaner is an **Intelligence-First, Vision-Capable AI Agent platform** designed for elite mobile detailing enterprises. The system leverages a **Multi-Model Orchestrator** (DeepSeek-V3/GPT-4o) to handle visual vehicle inspections, qualify luxury leads, and automate complex appointment scheduling. 
+# 💎 Mr. Cleaner: Maya AI Concierge
+### Visionary AI Agent Platform for Elite Mobile Detailing Enterprises
 
-This is not a chatbot; it is a **Visionary Concierge** that uses computer vision to inspect photos and business intelligence to drive revenue.
+<br/>
 
-## Key Features
-*   **Maya Vision**: Computer-vision enabled vehicle inspection. Customers upload photos, and Maya automatically identifies body types and surface issues.
-*   **Cinematic Luxury UI**: A high-end, glassmorphism-based interface designed to match the aesthetics of luxury automotive brands.
-*   **Dynamic Knowledge Orchestrator**: Real-time pricing and policy management via Supabase, allowing business owners to update agent logic without code.
-*   **Intelligence Dashboard**: Advanced ROI reporting, lead quality scoring, and live transparency into Maya's "Reasoning Paths."
-*   **Google Calendar Sync**: Real-time bidirectional synchronization with business availability.
-*   **Resilient Persistence**: Dual-layer failover using Supabase and localized memory stores for 99.9% agent uptime.
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![DeepSeek V3](https://img.shields.io/badge/DeepSeek_V3-Primary_Orchestrator-6366F1?style=for-the-badge)](https://deepseek.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Persistence-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Google Calendar](https://img.shields.io/badge/Google_Calendar-Real--Time_Sync-4285F4?style=for-the-badge&logo=google-calendar&logoColor=white)](https://calendar.google.com)
+[![Twilio](https://img.shields.io/badge/Twilio-Lead_Alerts-F22F46?style=for-the-badge&logo=twilio&logoColor=white)](https://twilio.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](./LICENSE)
 
-## Architecture Overview
-The system follows a **Decoupled Orchestration Architecture**:
+<br/>
 
-1.  **Reasoning Layer**: DeepSeek-V3 or GPT-4o processes natural language and manages the "ReAct" (Reasoning + Acting) loop.
-2.  **Orchestration Layer**: A Next.js backend loop that receives reasoning intent, executes validated tools, and persists state before returning a response.
-3.  **Persistence Layer**: Supabase handles relational data and session state, while a memory-backed store act as a circuit breaker for fault tolerance.
-4.  **Integration Layer**: Tool abstractions for third-party services (Google, Twilio) include pre-validation guards to prevent non-deterministic agent outputs.
+> *"Maya doesn't just chat; she inspects, qualifies, and orchestrates your business intelligence."*
 
-## Tech Stack
-*   **Framework**: Next.js 14 (App Router)
-*   **AI Engine**: DeepSeek-V3 / OpenAI (Native Function Calling)
-*   **Database**: Supabase (PostgreSQL)
-*   **Authentication**: Google OAuth 2.0 (for Calendar Sync)
-*   **Communication**: Twilio SMS API
-*   **Styling**: Vanilla CSS (Modular) with Premium Design Tokens
+**Mr. Cleaner** is a premium, vision-capable AI Agent platform built for high-end automotive detailing businesses. Powered by **Maya (DeepSeek-V3)**, the system performs autonomous vehicle inspections via computer vision, manages intelligent lead qualification, and provides a cinematic "Owner Portal" for real-time ROI tracking.
 
-## Installation
+[**✨ Features**](#-key-features) · [**🏗️ Architecture**](#-architecture) · [**🚀 Setup**](#-installation) · [**🛡️ Security**](#-security--scalability)
 
-### Prerequisites
-*   Node.js 18.x or higher
-*   Supabase Project
-*   Google Cloud Console Project (with Calendar API enabled)
+---
 
-### Steps
-1. Clone the repository:
-   ```bash
-   git clone [repository-url]
-   cd mobile-detailing-agent
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Initialize the database:
-   Apply the migrations found in `/supabase/migrations` to your Supabase project.
+</div>
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## 📌 The Elite Detailing Problem
 
-## Configuration
-Create a `.env.local` file in the root directory and populate it with the following keys:
+Traditional booking systems and generic chatbots fail luxury automotive brands:
+
+- **Manual Vehicle Inspection**: Determining a quote currently requires a human to look at photos or the car in person.
+- **Lead Drift**: High-intent customers get lost in email threads instead of being qualified instantly.
+- **Calendar Conflict**: Scheduling is often a manual back-and-forth between owner and client.
+- **Data Blindness**: Business owners don't see the "reasoning path" — why a customer did or didn't book.
+- **Rigid Logic**: Changing a price usually requires a developer to update code.
+
+**Mr. Cleaner handles all five.** Maya uses computer vision to inspect vehicle condition, qualifies leads in seconds, syncs directly with Google Calendar, and allows owners to update business knowledge via a simple Supabase dashboard.
+
+---
+
+## ✨ Key Features
+
+### 👁️ Maya Vision (Computer Vision Inspection)
+Maya is configured for visual vehicle assessments (`lib/ai-agent.js`):
+- **Body Identification**: Automatically detects if the vehicle is a Sedan, SUV, Truck, or Large SUV.
+- **Surface Diagnostics**: Identifies scratches, swirl marks, mud, and oxidation from uploaded photos.
+- **Intelligent Upselling**: Recommends "Ceramic Coating" or "Full Correction" based on visual evidence.
+- **Visual Evidence Logging**: Stores the "State of Vehicle" in the reasoning trace for quality assurance.
+
+### 🧠 Decoupled Orchestration Loop
+The `app/api/chat/route.js` implements a sophisticated "ReAct" cycle:
+1. **System Prompt Injection**: Loads the `MAYA_SYSTEM_PROMPT` containing elite concierge protocols.
+2. **Autonomous Tooling**: Maya iteratively calls `get_availability`, `calculate_quote`, and `sync_booking_state` before replying.
+3. **Max 5 Iterations**: Prevents infinite loops while allowing for complex, multi-tool reasoning chains.
+4. **State Persistence**: Customer details (name, phone, vehicle) are synced to the session state automatically as they are mentioned.
+
+### 📅 Infinite Calendar Sync
+Bi-directional integration with Google Calendar (`lib/calendar.js`):
+- **Auth Token Drift Fix**: Automatically listens for refresh tokens and persists them to Supabase to prevent API disconnects.
+- **Dynamic Slot Generation**: Checks "primary" calendar busy times and generates 60-minute interval windows between 8 AM and 6 PM.
+- **Requested Duration Aware**: Adjusts slot availability based on the specific service duration (e.g., Ceramic Coating needs 8 hours).
+
+### 🛡️ Zod-Guarded Tool Execution
+Every action Maya takes is validated against hard schemas in `lib/tools.js`:
+- **Pricing Integrity**: The `calculate_quote` tool is strictly limited to the `FALLBACK_KNOWLEDGE` or Supabase business rules.
+- **Phone Validation**: Uses `libphonenumber-js` to ensure only valid E.164 USA numbers are accepted.
+- **Date Protection**: Prevents appointments for past dates or invalid string formats.
+
+### 📊 Intelligence Dashboard (Owner Portal)
+A secure Admin UI (`app/dashboard`) for business management:
+- **Projected ROI Tracking**: Real-time stats on potential revenue generated by Maya.
+- **Lead Conversion Funnel**: Visualizing the ratio of "Inquiring" vs "Qualified" vs "Confirmed" leads.
+- **Live Reasoning Trace**: Watch Maya's internal logs and tool calls in real-time.
+- **Business Knowledge Editor**: Update pricing and policies directly in the database without touching code.
+
+---
+
+## 🏗️ Architecture
+
+### Decoupled Orchestration Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       Client (Next.js 14)                   │
+│  ┌────────────────┐   ┌────────────────┐   ┌─────────────┐  │
+│  │ Hero & Landing │   │ Chat Interface │   │ Admin Dash  │  │
+│  └──────┬─────────┘   └───────┬────────┘   └──────┬──────┘  │
+└─────────┼─────────────────────┼───────────────────┼─────────┘
+          │                     │                   │
+          ▼                     ▼                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Next.js API Orchestrator                  │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Maya Logic Engine (app/api/chat)                     │  │
+│  │  • Reasoning Loop (ReAct)                             │  │
+│  │  • Tool Guarding (Zod)                                │  │
+│  │  • Multi-Model (DeepSeek V3 / GPT-4o)                 │  │
+│  └────────┬───────────────────┬───────────────┬──────────┘  │
+│           │                   │               │             │
+└───────────┼───────────────────┼───────────────┼─────────────┘
+            │                   │               │
+            ▼                   ▼               ▼
+┌──────────────────────┐ ┌───────────────┐ ┌──────────────────┐
+│    Persistence       │ │ Integrations  │ │  Security Layer  │
+│                      │ │               │ │                  │
+│ • Supabase (Postgres)│ │ • Google Cal  │ │ • OAuth 2.0      │
+│ • Memory Fallback    │ │ • Twilio SMS  │ │ • RLS Policies   │
+│ • Session State      │ │ • Google Auth │ │ • Logic Guards   │
+└──────────────────────┘ └───────────────┘ └──────────────────┘
+```
+
+### File Responsibility Map
+
+| File | Responsibility |
+|---|---|
+| `lib/ai-agent.js` | Identity, System Prompt, and "Maya" personality configuration. |
+| `lib/tools.js` | Executable tool definitions (`calculate_quote`, `get_availability`). |
+| `lib/calendar.js` | Google Calendar API logic and Auth Token management. |
+| `lib/supabase.js` | Data access layer with high-availability memory fallbacks. |
+| `lib/twilio.js` | Dual-route lead alerts (Owner SMS + Client Confirmation). |
+| `app/api/chat` | The core "ReAct" orchestrator — manages LLM tool-calling loops. |
+
+---
+
+## 🚀 Installation
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Ismail-2001/Mobile-Detailing-AI-Agent.git
+cd Mobile-Detailing-AI-Agent
+npm install
+```
+
+### 2. Environment Configuration
+
+Copy `.env.local.example` to `.env.local` and provide your keys:
 
 ```ini
-# AI Provider
-DEEPSEEK_API_KEY=your_key
-OPENAI_API_KEY=your_key
+# AI Engine
+DEEPSEEK_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
 
-# Supabase
+# Persistence
 NEXT_PUBLIC_SUPABASE_URL=your_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+SUPABASE_SERVICE_ROLE_KEY=your_key
 
-# Google Calendar
-GOOGLE_CALENDAR_CLIENT_ID=your_client_id
-GOOGLE_CALENDAR_CLIENT_SECRET=your_client_secret
-GOOGLE_CALENDAR_REDIRECT_URI=http://localhost:3000/api/auth/callback/google
-
-# Twilio
+# Integrations
+GOOGLE_CALENDAR_CLIENT_ID=your_id
+GOOGLE_CALENDAR_CLIENT_SECRET=your_secret
 TWILIO_ACCOUNT_SID=your_sid
 TWILIO_AUTH_TOKEN=your_token
 TWILIO_PHONE_NUMBER=your_number
+
+# Business
+BUSINESS_PHONE=+15551234567
+BUSINESS_TIMEZONE=America/Chicago
 ```
 
-## Folder Structure
-```text
-├── app/
-│   ├── api/            # Serverless Route Handlers (Orchestrator, Auth, Bookings)
-│   ├── dashboard/      # Admin Management Interface
-│   └── page.js         # Customer Landing Page
-├── components/
-│   ├── dashboard/      # Analytics, Bookings Table, Live Calendar Grid
-│   └── ChatInterface/  # Agentic interaction UI
-├── lib/
-│   ├── ai-agent.js     # System Prompts & Agent Personality
-│   ├── tools.js        # Executable definitions for Maya's tools
-│   ├── calendar.js     # Google API Abstraction
-│   └── supabase.js     # Data Access Layer & Resilience Logic
-└── public/             # Static Assets
+### 3. Database Initialization
+
+Execute the SQL script in `supabase/schema.sql` to create the following tables:
+- `bookings`: Core appointment data.
+- `usage_logs`: Tool execution and reasoning traces.
+- `application_config`: Google Calendar OAuth tokens.
+- `business_knowledge`: Dynamic pricing and policies.
+
+### 4. Run Development
+
+```bash
+npm run dev
 ```
 
-## Security & Scalability
-*   **State Management**: Session data is serialized and stored on the server to prevent client-side manipulation.
-*   **Tool Guarding**: Semantic validation in `lib/tools.js` prevents the LLM from executing invalid business logic.
-*   **RLS Policies**: Supabase Row Level Security is configured to partition data between public interactions and management activities.
-*   **Horizontal Scaling**: The stateless nature of the Route Handlers allows for seamless deployment on Vercel or Kubernetes environments.
+Visit `http://localhost:3000`. Use the dashboard password: `cleaner2026`.
 
-## Performance
-*   **Latency Mitigation**: Implementation of optimistic UI updates for chat and localized caching for calendar slots.
-*   **Model Agnostic**: Easily switch between DeepSeek and OpenAI to optimize for cost or reasoning speed.
+---
 
-## License
-MIT License - Developed by Advanced Agentic Systems Engineers.
+## 🛡️ Security & Scalability
+
+### State Sovereignty
+Session data is serialized on the server. The `sessionId` (generated in `ChatInterface.js`) ensures that even if a client refreshes, Maya maintains the context of the conversation using Supabase persistence.
+
+### Tool Boundaries
+Maya can **never** hallucinate pricing. The `executeTool` function in `lib/tools.js` pulls truth from `business_knowledge`. If the database is down, it fails-over to a localized `FALLBACK_KNOWLEDGE` object, ensuring the agent remains operational.
+
+### Lead Integrity
+The system triggers **Dual Alerts** via Twilio:
+1. **Owner Alert**: A high-impact SMS containing all customer details, vehicle type, and price.
+2. **Customer Confirmation**: A high-touch, concierge-style SMS confirming the time and service.
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Phase 1: Foundation (Complete)
+- [x] Multi-model Orchestration (DeepSeek/OpenAI)
+- [x] ReAct Tool-Calling loop
+- [x] Google Calendar Sync with Token Refresh persistence
+- [x] Luxury Glassmorphism landing page
+- [x] Zod validation for all business logic
+
+### 🔨 Phase 2: Intelligence Expansion (Next)
+- [ ] **Native Photo Storage**: Automatically upload customer photos to Supabase Storage for Maya to reference long-term.
+- [ ] **Multi-Vehicle Support**: Ability to book multiple vehicles in a single session.
+- [ ] **Payment Integration**: Stripe checkout session generation via an agent tool.
+
+### 📋 Phase 3: Enterprise Scale
+- [ ] **Regional Routing**: Multi-location support for Austin, Dallas, and Houston.
+- [ ] **Predictive Scheduling**: Analysis of traffic data to buffer appointment travel times.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from Agentic Systems Engineers.
+1. Fork the repo.
+2. Create your feature branch (`git checkout -b feature/maya-stripe`).
+3. Commit with [Conventional Commits](https://www.conventionalcommits.org/).
+4. Open a Pull Request.
+
+---
+
+<div align="center">
+
+**Built for the elite. Perfected by Maya.**
+
+*If this platform helps your business grow, star ⭐ the repository.*
+
+Built with ❤️ by [Ismail Sajid](https://github.com/Ismail-2001)
+
+</div>
