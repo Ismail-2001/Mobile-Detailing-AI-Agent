@@ -5,6 +5,12 @@ import styles from './BookingsTable.module.css';
 import { MoreVertical, RefreshCw } from 'lucide-react';
 
 export default function BookingsTable({ bookings = [] }) {
+    const [filter, setFilter] = useState('all');
+
+    const filteredBookings = filter === 'all'
+        ? bookings
+        : bookings.filter(b => b.status?.toLowerCase() === filter);
+
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
             case 'confirmed': return '#30D158';
@@ -19,10 +25,11 @@ export default function BookingsTable({ bookings = [] }) {
             <div className={styles.header}>
                 <h2>Recent Elite Reservations</h2>
                 <div className={styles.filters}>
-                    <select className={styles.filterSelect}>
-                        <option>All Availability</option>
-                        <option>Pending Approval</option>
-                        <option>Confirmed Elite</option>
+                    <select className={styles.filterSelect} value={filter} onChange={(e) => setFilter(e.target.value)}>
+                        <option value="all">All Availability</option>
+                        <option value="pending">Pending Approval</option>
+                        <option value="confirmed">Confirmed Elite</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </div>
@@ -40,7 +47,7 @@ export default function BookingsTable({ bookings = [] }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {bookings.map((booking) => (
+                    {filteredBookings.map((booking) => (
                         <tr key={booking.id}>
                             <td>
                                 <div className={styles.customerInfo}>
@@ -76,7 +83,7 @@ export default function BookingsTable({ bookings = [] }) {
                             </td>
                         </tr>
                     ))}
-                    {bookings.length === 0 && (
+                    {filteredBookings.length === 0 && (
                         <tr>
                             <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                                 No bookings found. Try booking one with Maya!

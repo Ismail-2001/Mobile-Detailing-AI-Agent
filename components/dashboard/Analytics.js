@@ -15,7 +15,7 @@ const COLORS = ['var(--gold)', 'var(--platinum)', '#555', '#333'];
 
 export default function Analytics() {
     const [logs, setLogs] = useState([]);
-    const [stats, setStats] = useState({ revenue: 0, conversion: 0, inspections: 0, accuracy: 0 });
+    const [stats, setStats] = useState({ revenue: 0, conversion: 0, inspections: 0, bookings: 0 });
 
     useEffect(() => {
         const fetchLogs = async () => {
@@ -29,13 +29,28 @@ export default function Analytics() {
 
             if (data) setLogs(data);
 
-            // Fetch summary stats
+            // Fetch real stats
             const { count: inspections } = await supabase
                 .from('usage_logs')
                 .select('*', { count: 'exact', head: true })
                 .eq('event_type', 'tool_call');
 
-            setStats(prev => ({ ...prev, inspections: inspections || 42 }));
+            const { count: bookings } = await supabase
+                .from('bookings')
+                .select('*', { count: 'exact', head: true });
+
+            const { data: revenueData } = await supabase
+                .from('bookings')
+                .select('service_price')
+                .not('status', 'eq', 'cancelled');
+
+            const totalRevenue = revenueData?.reduce((sum, b) => sum + (b.service_price || 0), 0) || 0;
+
+            setStats({
+                revenue: totalRevenue,
+                inspections: inspections || 0,
+                bookings: bookings || 0,
+            });
         };
 
         fetchLogs();
@@ -50,9 +65,9 @@ export default function Analytics() {
                         <DollarSign size={24} />
                     </div>
                     <div className={styles.kpiData}>
-                        <span>Revenue Protected</span>
-                        <h3>$14,280</h3>
-                        <p className={styles.subtext}>Maya dynamic upselling Active</p>
+                        <span>Total Revenue</span>
+                        <h3>${stats.revenue.toLocaleString()}</h3>
+                        <p className={styles.subtext}>From confirmed bookings</p>
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
@@ -60,9 +75,9 @@ export default function Analytics() {
                         <TrendingUp size={24} />
                     </div>
                     <div className={styles.kpiData}>
-                        <span>Efficiency Gain</span>
-                        <h3>$420/hr</h3>
-                        <p className={styles.subtext}>Labor displacement ROI</p>
+                        <span>Total Bookings</span>
+                        <h3>{stats.bookings}</h3>
+                        <p className={styles.subtext}>All time bookings</p>
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
@@ -70,9 +85,9 @@ export default function Analytics() {
                         <Star size={24} />
                     </div>
                     <div className={styles.kpiData}>
-                        <span>Lead Score Avg</span>
-                        <h3>82/100</h3>
-                        <p className={styles.subtext}>Whale Detection Enabled</p>
+                        <span>Tool Executions</span>
+                        <h3>{stats.inspections}</h3>
+                        <p className={styles.subtext}>AI agent tool calls</p>
                     </div>
                 </div>
                 <div className={styles.kpiCard}>
@@ -81,8 +96,8 @@ export default function Analytics() {
                     </div>
                     <div className={styles.kpiData}>
                         <span>AI Interactions</span>
-                        <h3>{stats.inspections}</h3>
-                        <p className={styles.subtext}>Verified Engagement</p>
+                        <h3>{logs.length || 0}</h3>
+                        <p className={styles.subtext}>Recent chat sessions</p>
                     </div>
                 </div>
             </div>

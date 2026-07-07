@@ -73,7 +73,61 @@
 }
 
 @media (max-width: 768px) {
-    .links a {
+    .links {
         display: none;
     }
+
+    .hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: var(--white);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+
+    .hamburger:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+@media (min-width: 769px) {
+    .hamburger {
+        display: none;
+    }
+}
+
+.hamburger {
+    display: none;
+}
+
+.mobileMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 16px;
+}
+
+.mobileMenu a,
+.mobileMenu button {
+    color: var(--platinum);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 12px 0;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.mobileMenu a:hover,
+.mobileMenu button:hover {
+    color: var(--white);
 }

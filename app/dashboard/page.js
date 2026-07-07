@@ -20,9 +20,9 @@ import styles from './Dashboard.module.css';
  */
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('bookings');
-    const [isConnected, setIsConnected] = useState(false);
     const [bookings, setBookings] = useState([]);
     const [authError, setAuthError] = useState(false);
+    const [status, setStatus] = useState({ supabase: 'checking', google: 'checking' });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -38,15 +38,26 @@ export default function Dashboard() {
                 if (data.bookings) {
                     setBookings(data.bookings);
                 }
-
-                // Note: isCalendarConnected is no longer exposed via API
-                // for security reasons. Calendar status can be determined
-                // from the Settings page.
             } catch (e) {
                 console.error("Data fetch failed:", e);
             }
         };
+
+        const checkStatus = async () => {
+            try {
+                const res = await fetch('/api/health');
+                const health = await res.json();
+                setStatus({
+                    supabase: health.checks?.supabase === 'healthy' ? 'connected' : 'disconnected',
+                    google: health.checks?.google === 'configured' ? 'connected' : 'disconnected',
+                });
+            } catch {
+                setStatus({ supabase: 'disconnected', google: 'disconnected' });
+            }
+        };
+
         fetchData();
+        checkStatus();
     }, []);
 
     if (authError) {
@@ -96,7 +107,7 @@ export default function Dashboard() {
                         )}
                         {activeTab === 'calendar' && (
                             <div className={styles.container}>
-                                {isConnected ? (
+                                {status.google === 'connected' ? (
                                     <CalendarGrid />
                                 ) : (
                                     <div className={styles.placeholder}>
@@ -106,6 +117,7 @@ export default function Dashboard() {
                                             href="/api/auth/google"
                                             className={styles.connectBtn}
                                             target="_blank"
+                                            rel="noopener noreferrer"
                                         >
                                             Connect Google Calendar
                                         </a>

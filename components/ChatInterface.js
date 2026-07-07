@@ -217,7 +217,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
     }
 
     return (
-        <div className={styles.overlay}>
+        <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Chat with Maya">
             <div className={`${styles.container} animate-fade-in`}>
                 <div className={styles.header}>
                     <div className={styles.botProfile}>
@@ -227,11 +227,11 @@ export default function ChatInterface({ onClose, initialMessage }) {
                             <span>Online • AI Booking Assistant</span>
                         </div>
                     </div>
-                    <button className={styles.closeBtn} onClick={onClose}><X size={24} /></button>
+                    <button className={styles.closeBtn} aria-label="Close chat" onClick={onClose}><X size={24} /></button>
                 </div>
 
                 <ErrorBoundary>
-                    <div className={styles.messageList}>
+                    <div className={styles.messageList} aria-live="polite">
                     {messages.map((msg, i) => (
                         <div key={i} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : styles.botRow}`}>
                             <div className={styles.messageBubble}>
@@ -241,7 +241,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
                     ))}
                     {isTyping && (
                         <div className={styles.messageRow}>
-                            <div className={`${styles.messageBubble} ${styles.typing}`}>
+                            <div className={`${styles.messageBubble} ${styles.typing}`} aria-label="Maya is typing" role="status">
                                 <span></span><span></span><span></span>
                             </div>
                         </div>
@@ -259,10 +259,11 @@ export default function ChatInterface({ onClose, initialMessage }) {
                 <div className={styles.inputArea}>
                     <input
                         type="text"
+                        aria-label="Type your message to Maya"
                         placeholder={isTyping ? "Maya is thinking..." : "Type your message..."}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && !isTyping && handleSend()}
+                        onKeyDown={(e) => e.key === 'Enter' && !isTyping && handleSend()}
                         disabled={isTyping}
                     />
                     <button

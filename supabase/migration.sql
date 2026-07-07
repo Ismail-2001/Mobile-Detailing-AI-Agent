@@ -38,3 +38,20 @@ INSERT INTO business_knowledge (id, data) VALUES
     {"question": "What payment methods do you accept?", "answer": "We accept all major credit cards via secure online payment. A $50 deposit is required to book."}
   ]')
 ON CONFLICT (id) DO NOTHING;
+
+-- CLEANUP: Delete stale chat sessions older than 30 days
+-- Runs daily via pg_cron. Prevents unbounded table growth.
+-- NOTE: pg_cron must be enabled in Supabase (Database → Extensions → pg_cron)
+SELECT cron.schedule(
+    'cleanup-stale-sessions',
+    '0 3 * * *',  -- 3 AM daily
+    $$DELETE FROM chat_sessions WHERE last_active < NOW() - INTERVAL '30 days'$$
+);
+
+-- CLEANUP: Delete usage logs older than 90 days
+-- Runs weekly. Logs are useful for debugging but don't need to be kept forever.
+SELECT cron.schedule(
+    'cleanup-old-logs',
+    '0 4 * * 0',  -- 4 AM every Sunday
+    $$DELETE FROM usage_logs WHERE created_at < NOW() - INTERVAL '90 days'$$
+);

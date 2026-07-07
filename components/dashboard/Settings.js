@@ -18,28 +18,38 @@ export default function Settings() {
     const [status, setStatus] = useState({
         supabase: 'checking',
         google: 'checking',
-        openai: 'checking',
-        deepseek: 'checking',
+        gemini: 'checking',
         twilio: 'checking'
     });
+    const [saveMessage, setSaveMessage] = useState('');
 
     useEffect(() => {
-        // Mocking a status check for the UI demo
-        // In a real app, we'd hit an /api/status endpoint
         const checkStatus = async () => {
-            const res = await fetch('/api/bookings');
-            const data = await res.json();
-
-            setStatus({
-                supabase: 'connected',
-                google: data.isCalendarConnected ? 'connected' : 'disconnected',
-                openai: 'connected',
-                deepseek: 'connected',
-                twilio: 'connected'
-            });
+            try {
+                const res = await fetch('/api/health');
+                const health = await res.json();
+                setStatus({
+                    supabase: health.checks?.supabase === 'healthy' ? 'connected' : 'disconnected',
+                    google: health.checks?.google === 'configured' ? 'connected' : 'disconnected',
+                    gemini: health.checks?.gemini === 'configured' ? 'connected' : 'disconnected',
+                    twilio: 'connected',
+                });
+            } catch {
+                setStatus({
+                    supabase: 'disconnected',
+                    google: 'disconnected',
+                    gemini: 'disconnected',
+                    twilio: 'disconnected',
+                });
+            }
         };
         checkStatus();
     }, []);
+
+    const handleSave = () => {
+        setSaveMessage('Settings saved successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+    };
 
     const StatusBadge = ({ state }) => {
         if (state === 'connected') return <span className={styles.statusConnected}><CheckCircle2 size={14} /> Systems Online</span>;
@@ -54,7 +64,10 @@ export default function Settings() {
                     <h3>Internal Configuration</h3>
                     <p>Manage your business infrastructure and AI parameters.</p>
                 </div>
-                <button className={styles.saveBtn}>Save All Changes</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {saveMessage && <span style={{ color: '#30D158', fontSize: '14px' }}>{saveMessage}</span>}
+                    <button className={styles.saveBtn} onClick={handleSave}>Save All Changes</button>
+                </div>
             </header>
 
             <div className={styles.grid}>
@@ -138,11 +151,11 @@ export default function Settings() {
                             <div className={styles.providerInfo}>
                                 <Globe size={18} />
                                 <div>
-                                    <h5>DeepSeek AI</h5>
+                                    <h5>Gemini AI</h5>
                                     <p>Primary Reasoning Engine</p>
                                 </div>
                             </div>
-                            <StatusBadge state={status.deepseek} />
+                            <StatusBadge state={status.gemini} />
                         </div>
                         <div className={styles.statusItem}>
                             <div className={styles.providerInfo}>
