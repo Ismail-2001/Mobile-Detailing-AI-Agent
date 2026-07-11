@@ -41,31 +41,22 @@ bookings from the Supabase bookings table.
 
 ---
 
-## 6. No CSRF protection on booking POST endpoint
+## 6. ~~No CSRF protection on booking POST endpoint~~ — RESOLVED
 
-**Severity:** LOW  
-**File:** `app/api/bookings/route.js`
-
-The booking creation endpoint accepts any POST with JSON body. While the data is
-validated, there's no CSRF token check. An attacker could craft a page that
-submits a booking on behalf of a logged-in dashboard user.
-
-**Recommended fix:** Add CSRF token validation for state-changing endpoints, or
-ensure the booking POST is only callable from the chat interface (e.g., verify
-Origin/Referer headers).
+Added `lib/csrf.js` with Origin/Referer header validation. Middleware applies
+CSRF checks to all POST/PUT/DELETE routes except Stripe webhooks (which don't
+send Origin headers). Defense-in-depth alongside SameSite cookies.
 
 ---
 
-## 7. Weather check is simulated
+## 7. ~~Weather check is simulated~~ — RESOLVED
 
-**Severity:** LOW  
-**File:** `lib/tools.js` (check_weather)
+Integrated OpenWeatherMap API in `lib/tools.js` `check_weather` tool. Uses
+real-time weather data when `OPENWEATHER_API_KEY` is set and zip code is provided.
+Falls back to simulation when API key is not configured (local dev).
 
-The weather check returns random forecasts. For a real production system, this
-should call a weather API (e.g., OpenWeatherMap) with the actual date and zip code.
-
-**Recommended fix:** Integrate OpenWeatherMap or similar API. This is a feature
-enhancement, not a security fix.
+**Setup:** Get free API key at openweathermap.org/api (1000 calls/day free tier).
+Add `OPENWEATHER_API_KEY` to Vercel env vars.
 
 ---
 
