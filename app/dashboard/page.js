@@ -49,7 +49,7 @@ export default function Dashboard() {
                 const health = await res.json();
                 setStatus({
                     supabase: health.checks?.supabase === 'healthy' ? 'connected' : 'disconnected',
-                    google: health.checks?.google === 'configured' ? 'connected' : 'disconnected',
+                    google: health.checks?.google_calendar === 'configured' ? 'connected' : 'disconnected',
                 });
             } catch {
                 setStatus({ supabase: 'disconnected', google: 'disconnected' });

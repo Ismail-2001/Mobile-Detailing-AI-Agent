@@ -55,7 +55,15 @@ export async function middleware(request) {
         }
     }
 
-    // Protect dashboard data API — only allow GET /api/bookings with valid session
+    // Protect dashboard data API — only allow GET with valid session
+    if (pathname.startsWith('/api/dashboard') && pathname !== '/api/dashboard/auth' && request.method === 'GET') {
+        const valid = await verifySessionCookie(request);
+        if (!valid) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+    }
+
+    // Protect GET /api/bookings (dashboard reads)
     if (pathname === '/api/bookings' && request.method === 'GET') {
         const valid = await verifySessionCookie(request);
         if (!valid) {

@@ -122,11 +122,11 @@ export async function POST(req) {
             try {
                 const { data: kbData } = await supabaseAdmin
                     .from('business_knowledge')
-                    .select('id, content')
+                    .select('id, data')
                     .in('id', ['pricing', 'service_area', 'policies']);
 
                 if (kbData && kbData.length > 0) {
-                    const kbMap = Object.fromEntries(kbData.map(k => [k.id, k.content]));
+                    const kbMap = Object.fromEntries(kbData.map(k => [k.id, k.data]));
                     if (kbMap.service_area) {
                         businessConfig.service_area_zips = kbMap.service_area.zip_codes || [];
                         businessConfig.business_location = kbMap.service_area.counties?.join(', ') || '';

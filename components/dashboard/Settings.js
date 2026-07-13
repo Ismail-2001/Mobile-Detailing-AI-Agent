@@ -19,36 +19,66 @@ export default function Settings() {
         supabase: 'checking',
         google: 'checking',
         gemini: 'checking',
-        twilio: 'checking'
     });
     const [saveMessage, setSaveMessage] = useState('');
+    const [settings, setSettings] = useState({
+        business_name: 'Mr. Cleaner Mobile Detailing',
+        location: 'Texas, USA',
+        timezone: 'America/Chicago',
+        twilio_phone: '+1 (507) 479-7804',
+        whatsapp_number: '+1 (507) 479-7804',
+        ai_personality: 'maya',
+    });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const checkStatus = async () => {
+        const init = async () => {
             try {
-                const res = await fetch('/api/health');
-                const health = await res.json();
+                const [healthRes, settingsRes] = await Promise.all([
+                    fetch('/api/health'),
+                    fetch('/api/dashboard/settings'),
+                ]);
+                const health = await healthRes.json();
                 setStatus({
                     supabase: health.checks?.supabase === 'healthy' ? 'connected' : 'disconnected',
-                    google: health.checks?.google === 'configured' ? 'connected' : 'disconnected',
+                    google: health.checks?.google_calendar === 'configured' ? 'connected' : 'disconnected',
                     gemini: health.checks?.gemini === 'configured' ? 'connected' : 'disconnected',
-                    twilio: 'connected',
                 });
+                const settingsData = await settingsRes.json();
+                if (settingsData.settings) {
+                    setSettings(prev => ({ ...prev, ...settingsData.settings }));
+                }
             } catch {
-                setStatus({
-                    supabase: 'disconnected',
-                    google: 'disconnected',
-                    gemini: 'disconnected',
-                    twilio: 'disconnected',
-                });
+                setStatus({ supabase: 'disconnected', google: 'disconnected', gemini: 'disconnected' });
             }
         };
-        checkStatus();
+        init();
     }, []);
 
-    const handleSave = () => {
-        setSaveMessage('Settings saved successfully!');
-        setTimeout(() => setSaveMessage(''), 3000);
+    const handleSave = async () => {
+        setSaving(true);
+        setSaveMessage('');
+        try {
+            const res = await fetch('/api/dashboard/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings }),
+            });
+            if (res.ok) {
+                setSaveMessage('Settings saved successfully!');
+            } else {
+                setSaveMessage('Failed to save settings.');
+            }
+        } catch {
+            setSaveMessage('Connection failed.');
+        } finally {
+            setSaving(false);
+            setTimeout(() => setSaveMessage(''), 3000);
+        }
+    };
+
+    const update = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
     };
 
     const StatusBadge = ({ state }) => {
@@ -66,7 +96,7 @@ export default function Settings() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {saveMessage && <span style={{ color: '#30D158', fontSize: '14px' }}>{saveMessage}</span>}
-                    <button className={styles.saveBtn} onClick={handleSave}>Save All Changes</button>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save All Changes'}</button>
                 </div>
             </header>
 
@@ -79,16 +109,16 @@ export default function Settings() {
                     </div>
                     <div className={styles.formGroup}>
                         <label>Business Legal Name</label>
-                        <input type="text" defaultValue="Mr. Cleaner Mobile Detailing" />
+                        <input type="text" value={settings.business_name} onChange={e => update('business_name', e.target.value)} />
                     </div>
                     <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
                             <label>Base Operations</label>
-                            <input type="text" defaultValue="Texas, USA" />
+                            <input type="text" value={settings.location} onChange={e => update('location', e.target.value)} />
                         </div>
                         <div className={styles.formGroup}>
                             <label>Primary Timezone</label>
-                            <select defaultValue="America/Chicago">
+                            <select value={settings.timezone} onChange={e => update('timezone', e.target.value)}>
                                 <option value="America/Chicago">Central Time (CST)</option>
                                 <option value="America/New_York">Eastern Time (EST)</option>
                                 <option value="America/Los_Angeles">Pacific Time (PST)</option>
@@ -105,15 +135,15 @@ export default function Settings() {
                     </div>
                     <div className={styles.formGroup}>
                         <label>Business SMS Line (Twilio)</label>
-                        <input type="text" defaultValue="+1 (507) 479-7804" />
+                        <input type="text" value={settings.twilio_phone} onChange={e => update('twilio_phone', e.target.value)} />
                     </div>
                     <div className={styles.formGroup}>
                         <label>WhatsApp Specialist Number</label>
-                        <input type="text" defaultValue="+1 (507) 479-7804" />
+                        <input type="text" value={settings.whatsapp_number} onChange={e => update('whatsapp_number', e.target.value)} />
                     </div>
                     <div className={styles.formGroup}>
                         <label>AI Assistant Personality</label>
-                        <select defaultValue="maya">
+                        <select value={settings.ai_personality} onChange={e => update('ai_personality', e.target.value)}>
                             <option value="maya">Maya (Elite Concierge)</option>
                             <option value="bruno">Bruno (Rugged Specialist)</option>
                         </select>
@@ -165,7 +195,7 @@ export default function Settings() {
                                     <p>Owner Lead Notifications</p>
                                 </div>
                             </div>
-                            <StatusBadge state={status.twilio} />
+                            <span className={styles.statusConnected}><CheckCircle2 size={14} /> Available</span>
                         </div>
                     </div>
                 </section>

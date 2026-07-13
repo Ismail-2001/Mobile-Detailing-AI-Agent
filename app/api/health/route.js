@@ -37,6 +37,23 @@ export async function GET() {
         ? 'configured'
         : 'not_configured';
 
+    // Integrations
+    health.checks.weather_api = process.env.OPENWEATHER_API_KEY ? 'configured' : 'not_configured';
+    try {
+        if (supabaseAdmin) {
+            const { data: tokenData } = await supabaseAdmin
+                .from('application_config')
+                .select('id')
+                .eq('id', 'google_tokens')
+                .maybeSingle();
+            health.checks.google_calendar = tokenData ? 'configured' : 'not_configured';
+        } else {
+            health.checks.google_calendar = 'not_configured';
+        }
+    } catch {
+        health.checks.google_calendar = 'unhealthy';
+    }
+
     // Overall status
     const values = Object.values(health.checks);
     if (values.includes('unhealthy')) {

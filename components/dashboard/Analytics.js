@@ -4,56 +4,33 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { MOCK_ANALYTICS } from '@/lib/mock-data';
 import styles from './Analytics.module.css';
 import { TrendingUp, Users, DollarSign, Star } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 
 const COLORS = ['var(--gold)', 'var(--platinum)', '#555', '#333'];
 
 export default function Analytics() {
     const [logs, setLogs] = useState([]);
     const [stats, setStats] = useState({ revenue: 0, conversion: 0, inspections: 0, bookings: 0 });
+    const [data, setData] = useState({ revenueByDay: [], serviceDistribution: [] });
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            if (!supabase) return;
-
-            const { data } = await supabase
-                .from('usage_logs')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (data) setLogs(data);
-
-            // Fetch real stats
-            const { count: inspections } = await supabase
-                .from('usage_logs')
-                .select('*', { count: 'exact', head: true })
-                .eq('event_type', 'tool_call');
-
-            const { count: bookings } = await supabase
-                .from('bookings')
-                .select('*', { count: 'exact', head: true });
-
-            const { data: revenueData } = await supabase
-                .from('bookings')
-                .select('service_price')
-                .not('status', 'eq', 'cancelled');
-
-            const totalRevenue = revenueData?.reduce((sum, b) => sum + (b.service_price || 0), 0) || 0;
-
-            setStats({
-                revenue: totalRevenue,
-                inspections: inspections || 0,
-                bookings: bookings || 0,
-            });
+        const fetchData = async () => {
+            try {
+                const res = await fetch('/api/dashboard/analytics');
+                if (!res.ok) return;
+                const json = await res.json();
+                setLogs(json.logs || []);
+                setStats(prev => ({ ...prev, ...json.stats }));
+                setData({ revenueByDay: json.revenueByDay || [], serviceDistribution: json.serviceDistribution || [] });
+            } catch {
+                // Analytics unavailable - show empty state
+            }
         };
 
-        fetchLogs();
+        fetchData();
     }, []);
 
     return (
@@ -108,7 +85,7 @@ export default function Analytics() {
                     <h3>Agent Booking Velocity</h3>
                     <div className={styles.chartHolder}>
                         <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={MOCK_ANALYTICS.revenueByDay}>
+                            <LineChart data={data.revenueByDay}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
                                 <XAxis dataKey="day" stroke="#666" />
                                 <YAxis stroke="#666" />
@@ -125,7 +102,7 @@ export default function Analytics() {
                         <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
                                 <Pie
-                                    data={MOCK_ANALYTICS.serviceDistribution}
+                                    data={data.serviceDistribution}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
@@ -133,7 +110,7 @@ export default function Analytics() {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {MOCK_ANALYTICS.serviceDistribution.map((entry, index) => (
+                                    {data.serviceDistribution.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>

@@ -1,46 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import styles from './ReasoningLog.module.css';
-import { Brain, Cpu, Terminal, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Brain, Cpu, Terminal, Zap, CheckCircle } from 'lucide-react';
 
 export default function ReasoningLog() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!supabase) {
-            setLoading(false);
-            return;
-        }
-
         const fetchLogs = async () => {
-            const { data, error } = await supabase
-                .from('usage_logs')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(20);
-
-            if (data) {
-                setLogs(data);
+            try {
+                const res = await fetch('/api/dashboard/analytics');
+                if (!res.ok) {
+                    setLoading(false);
+                    return;
+                }
+                const json = await res.json();
+                setLogs(json.logs || []);
+            } catch {
+                // Analytics unavailable
+            } finally {
                 setLoading(false);
             }
         };
 
         fetchLogs();
-
-        // Real-time subscription for elite live feel
-        const channel = supabase
-            .channel('usage_logs_realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'usage_logs' }, (payload) => {
-                setLogs(prev => [payload.new, ...prev].slice(0, 20));
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
     }, []);
 
     const formatTimestamp = (ts) => {
