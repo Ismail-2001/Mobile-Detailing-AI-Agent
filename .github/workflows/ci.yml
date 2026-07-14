@@ -31,5 +31,5 @@ jobs:
       - name: Unit tests
         run: npm test
         env:
-          DASHBOARD_SESSION_SECRET: ${{ secrets.DASHBOARD_SESSION_SECRET || 'a'.repeat(32) }}
+          DASHBOARD_SESSION_SECRET: ${{ secrets.DASHBOARD_SESSION_SECRET || 'ci-test-secret-for-testing-only-32ch' }}
           NODE_ENV: test
