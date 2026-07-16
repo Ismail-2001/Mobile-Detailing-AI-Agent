@@ -70,8 +70,12 @@ export default function ChatInterface({ onClose, initialMessage }) {
     }, [messages]);
 
     useEffect(() => {
-        // Don't initialize session until sessionId is set (client-side only)
-        if (!sessionId) return;
+        // No stored session ID — this is a first visit. Start fresh immediately.
+        // Previously this returned early and left isLoadingSession stuck at true.
+        if (!sessionId) {
+            setIsLoadingSession(false);
+            return;
+        }
 
         // --- BOOKING DATA PERSISTENCE FIX ---
         // On mount, load the previous session state from Supabase so a page
@@ -114,13 +118,19 @@ export default function ChatInterface({ onClose, initialMessage }) {
                 console.error("Session restore failed:", e);
             } finally {
                 setIsLoadingSession(false);
-                if (initialMessage) {
-                    handleSend(initialMessage);
-                }
             }
         };
         initSession();
     }, [sessionId]);
+
+    // Handle initialMessage for first visits (sessionId is null on first mount)
+    const hasSentInitialRef = useRef(false);
+    useEffect(() => {
+        if (initialMessage && !hasSentInitialRef.current && !isLoadingSession) {
+            hasSentInitialRef.current = true;
+            handleSend(initialMessage);
+        }
+    }, [initialMessage, isLoadingSession]);
 
     const handleSend = async (text) => {
         const messageText = text || input;

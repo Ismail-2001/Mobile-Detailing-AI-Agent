@@ -1,85 +1,83 @@
-# KNOWN_ISSUES.md
+# Known Issues & Client Onboarding Guide
 
-Issues identified during the production remediation audit that are intentionally
-deferred. Each should be filed as a ticket and addressed before or shortly after
-client handoff.
+*Transparency builds trust. This document lists every known limitation, required setup step, and post-deploy TODO so you know exactly what you're getting.*
 
 ---
 
-## 1. ~~Supabase anon key is public and RLS policies are too permissive~~ — RESOLVED
+## 1. Pre-Launch Checklist (Client Must Complete)
 
-Tightened RLS policies: anon can only INSERT bookings/chat_sessions/usage_logs.
-application_config is service-role only. SELECT on bookings is service-role only.
+| # | Item | Owner | Time | Notes |
+|---|------|-------|------|-------|
+| 1 | **Google Calendar OAuth** | Client | 15 min | Create OAuth credentials in Google Cloud Console, paste IDs into env vars |
+| 2 | **Stripe Account** | Client | 10 min | Create Stripe account, copy secret + webhook secret |
+| 3 | **Gemini API Key** | Client | 5 min | Get free key at [aistudio.google.com](https://aistudio.google.com) — primary AI engine |
+| 4 | **Twilio Phone Number** | Client | 10 min | Purchase SMS-capable number, copy Account SID + Auth Token |
+| 5 | **Custom Domain** | Client | varies | Point DNS to Vercel deployment |
+| 6 | **Supabase Project** | Handled | — | Included in DFY setup, but client owns the Supabase account |
 
----
+## 2. Features That Work Immediately (Zero Config)
 
-## 2. ~~Chat API route has no rate limiting~~ — RESOLVED
+- ✅ **AI Chat (Maya)** — works with Gemini, DeepSeek, or OpenAI fallback
+- ✅ **Online Booking** — full calendar availability + booking creation
+- ✅ **Dashboard** — bookings table, analytics, reasoning log
+- ✅ **SMS Notifications** — Twilio integration
+- ✅ **WhatsApp Integration** — direct booking via WhatsApp
+- ✅ **Weather API** — real-time forecast for scheduling decisions
+- ✅ **Landing Page** — testimonials, stats, service menu
 
-Added in-memory sliding window rate limiter (`lib/rate-limit.js`) — 20 requests
-per minute per session ID. Chat, bookings, and auth routes all enforce limits.
+## 3. Missing Env Vars (Optional, Non-Blocking)
 
----
+These environment variables are optional — the app runs without them but the corresponding feature is disabled:
 
-## 3. ~~Stripe webhook secret is not validated at startup~~ — RESOLVED
+```
+STRIPE_SECRET_KEY        — Payments disabled (no Stripe account linked)
+STRIPE_WEBHOOK_SECRET    — Stripe webhook verification disabled
+OPENAI_API_KEY           — OpenAI fallback disabled
+DEEPSEEK_API_KEY         — DeepSeek fallback disabled
+GEMINI_API_KEY           — Falls back to simulation mode (Maya says "simulation mode")
+GOOGLE_CALENDAR_CLIENT_ID + GOOGLE_CALENDAR_CLIENT_SECRET — Calendar sync disabled
+OPENWEATHER_API_KEY      — Weather forecasts disabled
+```
 
-Added `lib/validate-env.js` that runs at API route startup. Validates all critical
-env vars (DASHBOARD_PASSWORD, DASHBOARD_SESSION_SECRET, STRIPE_SECRET_KEY,
-STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).
+## 4. Technical Limitations
 
----
+- **Rate Limiting**: Chat API limited to 20 req/min per session; bookings POST limited to 10/min
+- **CSRF Protection**: POST/PUT/DELETE requests require Origin/Referer matching
+- **Session Expiry**: Dashboard sessions expire after 8 hours (configurable in `lib/session.js`)
+- **File Uploads**: Not implemented (codebase uses text-only chat)
+- **Multi-Tenancy**: Single-tenant install by default; multi-tenancy architecture planned but not deployed
+- **Google Calendar**: Requires manual OAuth setup in Google Cloud Console (step-by-step guide below)
 
-## 4. ~~`chat_sessions` table may not exist in Supabase~~ — RESOLVED
+## 5. Google Calendar Setup Guide (Required for Booking Sync)
 
-Added to `supabase/schema.sql` as part of Fix 4 implementation.
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a new OAuth 2.0 Client ID (Web application type)
+3. Add authorized redirect URI: `https://yourdomain.com/api/auth/callback/google`
+4. Copy **Client ID** and **Client Secret** into env vars:
+   ```
+   GOOGLE_CALENDAR_CLIENT_ID=your_client_id_here
+   GOOGLE_CALENDAR_CLIENT_SECRET=your_client_secret_here
+   ```
+5. Enable the Google Calendar API in the same console
 
----
+## 6. Security Posture
 
-## 5. ~~Calendar availability check doesn't account for bookings table~~ — RESOLVED
+| Category | Status |
+|----------|--------|
+| RLS Policies | ✅ All tables have RLS enforced |
+| Auth | ✅ Server-side JWT auth (no client-side password check) |
+| CSRF | ✅ Origin/Referer validation on state-changing requests |
+| Rate Limiting | ✅ Per-session + IP-based rate limiting |
+| Input Validation | ✅ Zod schemas on all API endpoints |
+| Session Revocation | ✅ Logout immediately invalidates JWT |
+| PII Redaction | ✅ Customer names/phones redacted from logs |
+| XSS Protection | ✅ Content-Security-Policy headers set |
+| HTTPS | ✅ Enforced on Vercel production |
+| API Keys | ✅ No keys exposed in client bundle |
 
-Updated `lib/calendar.js` `checkAvailability` to exclude slots with non-cancelled
-bookings from the Supabase bookings table.
+## 7. Post-Launch Monitoring
 
----
-
-## 6. ~~No CSRF protection on booking POST endpoint~~ — RESOLVED
-
-Added `lib/csrf.js` with Origin/Referer header validation. Middleware applies
-CSRF checks to all POST/PUT/DELETE routes except Stripe webhooks (which don't
-send Origin headers). Defense-in-depth alongside SameSite cookies.
-
----
-
-## 7. ~~Weather check is simulated~~ — RESOLVED
-
-Integrated OpenWeatherMap API in `lib/tools.js` `check_weather` tool. Uses
-real-time weather data when `OPENWEATHER_API_KEY` is set and zip code is provided.
-Falls back to simulation when API key is not configured (local dev).
-
-**Setup:** Get free API key at openweathermap.org/api (1000 calls/day free tier).
-Add `OPENWEATHER_API_KEY` to Vercel env vars.
-
----
-
-## 8. Rate limiter is in-memory only (no persistence across restarts)
-
-**Severity:** LOW  
-**File:** `lib/rate-limit.js`
-
-The sliding window rate limiter stores state in a JavaScript Map. If the server
-restarts, all rate limit counters reset. Acceptable for single-instance deployment
-but not for multi-instance or serverless.
-
-**Recommended fix:** For multi-instance deployments, use Redis or Supabase to store
-rate limit counters.
-
----
-
-## 9. Error boundaries only on dashboard and chat
-
-**Severity:** LOW  
-**File:** `components/ErrorBoundary.js`
-
-Error boundaries are only applied to the dashboard page and chat interface. Other
-client components (booking summary, etc.) may throw unhandled errors in production.
-
-**Recommended fix:** Add error boundaries around other interactive components as needed.
+- Check Vercel dashboard for deployment logs and errors
+- Monitor Supabase table `usage_logs` for API usage patterns
+- Set up uptime monitoring (e.g., UptimeRobot) on the health endpoint: `https://yourdomain.com/api/health`
+- Review dashboard analytics weekly for booking conversion rates

@@ -19,7 +19,6 @@ export default function Navbar() {
                     {/* Desktop links */}
                     <div className={styles.links}>
                         <a href="#services">Services</a>
-                        <a href="#experience">AI Vision</a>
                         <button
                             type="button"
                             className={styles.cta}
@@ -45,7 +44,6 @@ export default function Navbar() {
                 {menuOpen && (
                     <div className={styles.mobileMenu} role="menu">
                         <a href="#services" onClick={() => setMenuOpen(false)} role="menuitem">Services</a>
-                        <a href="#experience" onClick={() => setMenuOpen(false)} role="menuitem">AI Vision</a>
                         <button
                             type="button"
                             className={styles.cta}
