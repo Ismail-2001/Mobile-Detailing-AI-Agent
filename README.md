@@ -1,7 +1,7 @@
 <div align="center">
 
-# Mr. Cleaner: Maya AI Concierge
-### Visionary AI Agent Platform for Elite Mobile Detailing Enterprises
+# Mr. Cleaner — Maya AI Concierge
+### Turn website visitors into confirmed, paid bookings — without hiring a single person
 
 <br/>
 
@@ -14,139 +14,109 @@
 
 <br/>
 
-> *"Maya doesn't just chat; she inspects, qualifies, and orchestrates your business intelligence."*
-
-**Mr. Cleaner** is a production-ready, vision-capable AI Agent platform built for high-end automotive detailing businesses. Powered by **Maya (Gemini 2.0 Flash)**, the system performs autonomous vehicle inspections via computer vision, manages intelligent lead qualification, processes payments via Stripe, and provides a cinematic "Owner Portal" for real-time ROI tracking.
-
-[**Features**](#-key-features) · [**Architecture**](#-architecture) · [**Setup**](#-installation) · [**Security**](#-security)
-
----
-
 </div>
 
-## The Elite Detailing Problem
+## What This Does for Your Detailing Business
 
-Traditional booking systems and generic chatbots fail luxury automotive brands:
+You lose money every time a potential customer visits your site and doesn't book. Maybe they got distracted. Maybe you were too slow to reply. Maybe they didn't want to make a phone call.
 
-- **Manual Vehicle Inspection**: Determining a quote currently requires a human to look at photos or the car in person.
-- **Lead Drift**: High-intent customers get lost in email threads instead of being qualified instantly.
-- **Calendar Conflict**: Scheduling is often a manual back-and-forth between owner and client.
-- **Data Blindness**: Business owners don't see the "reasoning path" — why a customer did or didn't book.
-- **No Payment Collection**: Deposits are collected via Venmo/CashApp with no formal tracking.
+**Maya is a 24/7 AI booking agent that:** 
 
-**Mr. Cleaner handles all five.** Maya uses computer vision to inspect vehicle condition, qualifies leads in seconds, syncs directly with Google Calendar, collects deposits via Stripe, and allows owners to update business knowledge via a secure dashboard.
+- Answers customer questions instantly — any time, day or night
+- Quotes exact prices for your services based on vehicle type and condition
+- Checks your calendar and schedules appointments in real time
+- Collects deposits via Stripe before you lift a finger
+- Texts you lead alerts so you know what's booked and when
+- Stores everything in a dashboard — revenue, bookings, customer history
 
----
-
-## Key Features
-
-### Maya Vision (Computer Vision Inspection)
-Maya is configured for visual vehicle assessments (`lib/ai-agent.js`):
-- **Body Identification**: Automatically detects if the vehicle is a Sedan, SUV, Truck, or Large SUV.
-- **Surface Diagnostics**: Identifies scratches, swirl marks, mud, and oxidation from uploaded photos.
-- **Intelligent Upselling**: Recommends "Ceramic Coating" or "Full Correction" based on visual evidence.
-- **Visual Evidence Logging**: Stores the "State of Vehicle" in the reasoning trace for quality assurance.
-
-### Decoupled Orchestration Loop
-The `app/api/chat/route.js` implements a sophisticated "ReAct" cycle:
-1. **System Prompt Injection**: Loads the `MAYA_SYSTEM_PROMPT` containing elite concierge protocols.
-2. **Autonomous Tooling**: Maya iteratively calls `get_availability`, `calculate_quote`, `generate_deposit_link`, and `sync_booking_state` before replying.
-3. **Max 5 Iterations**: Prevents infinite loops while allowing for complex, multi-tool reasoning chains.
-4. **State Persistence**: Customer details are synced to Supabase automatically as they are mentioned.
-
-### Stripe Payment Integration
-Real payment collection via `lib/stripe.js`:
-- **Deposit Collection**: Generates Stripe Checkout Sessions for booking deposits ($50 default).
-- **Webhook Verification**: `app/api/stripe/webhook` validates payment status with signature verification.
-- **Idempotent Processing**: Prevents duplicate bookings from webhook retries.
-- **Graceful Fallback**: Mock URLs when Stripe is not configured (local dev mode).
-
-### Calendar Sync
-Bi-directional integration with Google Calendar (`lib/calendar.js`):
-- **Per-Request OAuth**: Fresh client per request to prevent token swap race conditions.
-- **DST-Aware Timezone**: Uses `Intl.DateTimeFormat` instead of hardcoded UTC offset.
-- **Dynamic Slot Generation**: Checks busy times and generates interval windows between 8 AM and 6 PM.
-
-### Security-First Architecture
-Production-grade security (`middleware.js`, `lib/session.js`):
-- **JWT Session Auth**: Dashboard protected by jose-signed HS256 cookies.
-- **Session Revocation**: Logout invalidates JWTs via Supabase blocklist.
-- **Rate Limiting**: Chat (20/min/session), Login (5/15min/IP), Bookings (5/min/IP).
-- **Zod Validation**: All API inputs validated against strict schemas.
-- **PII Redaction**: Customer names/phones/addresses stripped from all logs.
-- **RLS Policies**: Supabase row-level security with anon key restricted to INSERT-only.
-- **CSRF Protection**: Origin/Referer header checks on state-changing requests.
-- **Security Headers**: CSP, HSTS, X-Frame-Options, nosniff via `next.config.mjs`.
-
-### Intelligence Dashboard (Owner Portal)
-A secure Admin UI (`app/dashboard`) for business management:
-- **Real-Time KPIs**: Revenue, bookings, tool executions from Supabase.
-- **Bookings Table**: Filter by status, view customer details.
-- **Live Reasoning Trace**: Watch Maya's internal logs and tool calls in real-time.
-- **System Health**: `/api/health` endpoint monitoring Supabase, AI, Stripe, and dashboard status.
+All of this happens **without you hiring a receptionist, a dispatcher, or a customer service person.**
 
 ---
 
-## Architecture
+## Why Detailing Owners Switch to Maya
 
-### Decoupled Orchestration Flow
+### 1. Never Lose a Lead to Slow Response Again
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client (Next.js 16)                       │
-│  ┌────────────────┐   ┌────────────────┐   ┌─────────────┐  │
-│  │ Hero & Landing │   │ Chat Interface │   │ Admin Dash  │  │
-│  └──────┬─────────┘   └───────┬────────┘   └──────┬──────┘  │
-└─────────┼─────────────────────┼───────────────────┼─────────┘
-          │                     │                   │
-          ▼                     ▼                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Next.js API Orchestrator                   │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  Maya Logic Engine (app/api/chat)                     │  │
-│  │  • Reasoning Loop (ReAct)                             │  │
-│  │  • Tool Guarding (Zod)                                │  │
-│  │  • Multi-Model (Gemini / DeepSeek / OpenAI)           │  │
-│  └────────┬───────────────────┬───────────────┬──────────┘  │
-│           │                   │               │             │
-└───────────┼───────────────────┼───────────────┼─────────────┘
-            │                   │               │
-            ▼                   ▼               ▼
-┌──────────────────────┐ ┌───────────────┐ ┌──────────────────┐
-│    Persistence       │ │ Integrations  │ │  Security Layer  │
-│                      │ │               │ │                  │
-│ • Supabase (Postgres)│ │ • Google Cal  │ │ • JWT Sessions   │
-│ • Memory Fallback    │ │ • Twilio SMS  │ │ • RLS Policies   │
-│ • Session State      │ │ • Stripe Pay  │ │ • Rate Limiting  │
-│ • Session Revocation │ │ • Gemini AI   │ │ • CSRF Guards    │
-└──────────────────────┘ └───────────────┘ └──────────────────┘
-```
+Most detailing websites get 3-10 visits per day. If you're busy detailing a car (which you should be), you're not answering your chat or returning voicemails. That customer moves to the next detailer on Google.
 
-### File Responsibility Map
+Maya responds in under 2 seconds. She tells them your service area, quotes a price, checks your calendar, and sends them a deposit link — all while you're hands-free with a buffer and polish.
 
-| File | Responsibility |
+### 2. No More "I'll Call You Back" Bookings
+
+A customer says "I'll book later" and never does. Maya converts them on the spot by asking exactly three things: **what service, what vehicle, what date**. She handles the rest. Deposits lock the slot so no-shows don't burn your time.
+
+### 3. Increase Average Ticket Value
+
+Maya knows your pricing inside out. When a customer asks about a basic wash, she automatically quotes the right package for their vehicle type (sedan vs. SUV vs. truck). Pet hair? Heavy soil? Luxury upcharge? She calculates it all — no awkward phone upsells, no forgotten add-ons.
+
+### 4. Stop Double-Booking Your Calendar
+
+Maya writes directly to Google Calendar. When a slot is taken, it's gone. No more "did I write that down?" moments. She works 8 AM to 6 PM, Monday through Saturday, and knows your exact service duration.
+
+### 5. See Your Numbers Without Spreadsheets
+
+The Owner Dashboard shows:
+- **Revenue this month** (from real stripe payments, not guesses)
+- **Number of bookings** and their status
+- **Tool execution logs** — see how many quotes Maya generated
+- **System health** — is everything running?
+
+No accounting degree required.
+
+---
+
+## What's Included
+
+| What you get | What it replaces |
 |---|---|
-| `lib/ai-agent.js` | Identity, System Prompt, and "Maya" personality configuration. |
-| `lib/tools.js` | Executable tool definitions with Zod validation. |
-| `lib/stripe.js` | Stripe Checkout Session creation for deposit collection. |
-| `lib/calendar.js` | Google Calendar API logic and per-request OAuth. |
-| `lib/session.js` | JWT session creation/verification with jose. |
-| `lib/revocation.js` | Session revocation store (Supabase-backed). |
-| `lib/rate-limit.js` | In-memory sliding window rate limiters (chat, login, bookings). |
-| `lib/pii-redact.js` | PII stripping from logs (names, phones, addresses). |
-| `lib/supabase.js` | Anon client + booking creation with race condition defense. |
-| `lib/supabase-admin.js` | Service role client (bypasses RLS, server-only). |
-| `app/api/chat` | Core "ReAct" orchestrator — manages LLM tool-calling loops. |
-| `app/api/stripe/webhook` | Payment verification with signature check + idempotency. |
-| `app/api/health` | System health check (Supabase, AI, Stripe, Dashboard). |
-| `middleware.js` | Dashboard auth enforcement + session revocation checks. |
+| 24/7 AI chat agent (Maya) | Receptionist, customer service, after-hours support |
+| Instant quote calculator | Manual pricing lookup, "let me calculate that" delays |
+| Google Calendar sync | Paper calendar, mental scheduling, double-bookings |
+| Stripe deposit collection | Venmo/CashApp tracking, unpaid bookings, no-shows |
+| Owner dashboard | Spreadsheets, guessing your revenue, missed insights |
+| Twilio SMS alerts | "Did the customer confirm?" anxiety |
+| Security & rate limiting | Spam bookings, brute-force attacks, data leaks |
 
 ---
 
-## Installation
+## Live Example
 
-### 1. Clone & Install
+See Maya in action at [your-site.com] — type *"I need a ceramic coating for my F-150 next Saturday"* and watch her check the calendar, quote the price, and send a payment link.
+
+---
+
+## Tech Stack
+
+| Layer | What it uses |
+|---|---|
+| **Frontend** | Next.js 16 — fast, SEO-friendly landing page with dark mode |
+| **AI Engine** | Gemini 2.0 Flash primary, DeepSeek & OpenAI as fallback |
+| **Database** | Supabase (PostgreSQL) — bookings, sessions, logs |
+| **Payments** | Stripe Checkout + webhook verification |
+| **Calendar** | Google Calendar API — read/write availability |
+| **Alerts** | Twilio SMS — new booking notifications |
+| **Auth** | JWT sessions with server-side revocation |
+| **Rate Limiting** | Per-session + per-IP to prevent abuse |
+| **Validation** | Zod on every input |
+
+No monthly SaaS fees. No per-seat licenses. You own the entire stack.
+
+---
+
+## What You Need to Get Started
+
+1. **A domain** — where your website lives (or use a subdomain)
+2. **A Google account** — for Calendar sync
+3. **A Stripe account** — to collect deposits
+4. **A Supabase account** — free tier works
+5. **A Twilio number** — for SMS alerts (~$1/month)
+6. **A Gemini API key** — free tier gives 15 requests per minute
+
+That's it. No development team. No agency. Fork the repo, add your keys, and deploy.
+
+---
+
+## Quick Setup
 
 ```bash
 git clone https://github.com/Ismail-2001/Mr-Cleaner-AI-Agent.git
@@ -154,132 +124,57 @@ cd Mr-Cleaner-AI-Agent
 npm install
 ```
 
-### 2. Environment Configuration
+Copy `.env.local.example` to `.env.local` and fill in your API keys (Gemini, Supabase, Stripe, Google Calendar, Twilio).
 
-Copy `.env.local.example` to `.env.local` and provide your keys:
-
-```ini
-# AI Engine (Gemini primary, DeepSeek/OpenAI fallback)
-GEMINI_API_KEY=your_key_here
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
-SUPABASE_SERVICE_ROLE_KEY=your_key
-
-# Dashboard Auth
-DASHBOARD_PASSWORD=your_password
-DASHBOARD_SESSION_SECRET=random_32plus_chars
-
-# Stripe (optional for demo)
-STRIPE_SECRET_KEY=your_key
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
-
-# Integrations (optional)
-GOOGLE_CALENDAR_CLIENT_ID=your_id
-GOOGLE_CALENDAR_CLIENT_SECRET=your_secret
-TWILIO_ACCOUNT_SID=your_sid
-TWILIO_AUTH_TOKEN=your_token
-TWILIO_PHONE_NUMBER=your_number
-
-# Business
-BUSINESS_NAME="Your Business Name"
-BUSINESS_TIMEZONE=America/Chicago
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-### 3. Database Initialization
-
-Execute `supabase/schema.sql` in Supabase SQL Editor to create:
-- `bookings` — Core appointment data with unique slot constraint.
-- `chat_sessions` — Persistent conversation state.
-- `usage_logs` — Tool execution and reasoning traces.
-- `business_knowledge` — Dynamic pricing, policies, and service areas.
-- `application_config` — Google Calendar OAuth tokens.
-
-Then run `supabase/migration.sql` for seed data + performance indexes.
-
-### 4. Run Development
+Run the database schema from `supabase/schema.sql` in Supabase SQL Editor.
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` for the landing page.
-Visit `http://localhost:3000/dashboard` for the owner portal.
+Deploy to Vercel in one click — zero server management.
 
 ---
 
-## Security
+## Security Built In
 
-### Session Management
-- JWT-based session cookies via `jose` (HS256).
-- 8-hour expiry with server-side revocation on logout.
-- Dashboard login rate-limited to 5 attempts per 15 minutes per IP.
+- Dashboard login: 5 attempts per 15 minutes per IP
+- Chat API: 20 requests per minute per session + 100 per minute per IP
+- All customer names, phones, and addresses stripped from logs
+- Stripe webhooks verified by cryptographic signature
+- Zod validation rejects malformed requests before they reach business logic
+- Rate limiting prevents spam bookings that waste your Twilio credits
 
-### Data Protection
-- Supabase RLS policies restrict anon key to INSERT-only on bookings.
-- Service role key used only in server-side API routes.
-- All customer PII redacted from application logs.
-
-### API Security
-- Zod validation on all request bodies (chat, booking, auth).
-- Rate limiting per session (chat) and per IP (login, bookings).
-- CSRF protection via Origin/Referer header checks.
-- Security headers: CSP, HSTS, X-Frame-Options, nosniff.
-
-### Payment Security
-- Stripe Checkout Sessions created server-side only.
-- Webhook signature verification prevents spoofed payments.
-- Idempotent processing prevents duplicate bookings.
+Your customer data stays yours. No third-party AI training on your conversations.
 
 ---
 
-## Roadmap
+## How It Compares
 
-### Phase 1: Production Foundation (Complete)
-- [x] Multi-model orchestration (Gemini primary, DeepSeek/OpenAI fallback)
-- [x] ReAct tool-calling loop with Zod validation
-- [x] Stripe payment integration (Checkout + Webhook)
-- [x] Google Calendar sync with per-request OAuth
-- [x] JWT session auth with revocation
-- [x] Rate limiting (chat, login, bookings)
-- [x] PII redaction in logs
-- [x] Security headers (CSP, HSTS, X-Frame-Options)
-- [x] Premium landing page with scroll animations
-- [x] Owner dashboard with real-time KPIs
-
-### Phase 2: Multi-Tenancy (Next)
-- [ ] `businesses` table with per-tenant config
-- [ ] Dynamic system prompt templating from DB
-- [ ] Per-tenant Twilio number + Calendar OAuth
-- [ ] No-code onboarding wizard
-- [ ] Redis-based rate limiting for serverless scale
-
-### Phase 3: Enterprise Scale
-- [ ] Native photo storage (Supabase Storage)
-- [ ] Multi-vehicle booking support
-- [ ] Real weather API integration
-- [ ] Subscription billing via Stripe
-- [ ] Multi-location support
+| | Maya AI | Generic chatbot | Phone-only | Spreadsheet + Venmo |
+|---|---|---|---|---|
+| Answers 24/7 | ✅ Instant | ✅ Shallow replies | ❌ Missed calls | ❌ |
+| Quotes exact prices | ✅ Yes | ❌ No | ❌ Takes minutes | ❌ |
+| Books on calendar | ✅ Auto | ❌ | ❌ Manual entry | ❌ |
+| Collects deposits | ✅ Stripe | ❌ | ❌ | ⚠️ Venmo trust |
+| Shows you revenue | ✅ Dashboard | ❌ | ❌ | ❌ |
+| SMS alerts | ✅ Twilio | ❌ | ❌ | ❌ |
+| One-time setup | ✅ Yes | ❌ Monthly fees | ❌ | ❌ |
 
 ---
 
-## Contributing
+## Who Built This
 
-1. Fork the repo.
-2. Create your feature branch (`git checkout -b feature/improvement`).
-3. Commit with [Conventional Commits](https://www.conventionalcommits.org/).
-4. Open a Pull Request.
+Built by [Ismail Sajid](https://github.com/Ismail-2001) — a developer who works with US detailing businesses to replace manual booking workflows with autonomous AI agents.
+
+No ongoing retainers. No per-booking fees. You take the code and run it.
 
 ---
 
 <div align="center">
 
-**Built for the elite. Perfected by Maya.**
+**Stop losing customers to slow responses. Let Maya book while you work.**
 
-*If this platform helps your business grow, star the repository.*
-
-Built with by [Ismail Sajid](https://github.com/Ismail-2001)
+Star the repo if this solves a problem for your business.
 
 </div>
