@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { generateMayaPrompt } from '@/lib/ai-agent';
 import { MAYA_TOOLS, executeTool } from '@/lib/tools';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, checkChatIpRateLimit } from '@/lib/rate-limit';
 import { validateBody, ChatRequestSchema } from '@/lib/api-validation';
 import { redactToolArgs } from '@/lib/pii-redact';
 import { withTimeout, DEFAULT_TIMEOUT_MS } from '@/lib/timeout';
@@ -85,6 +85,20 @@ export async function POST(req) {
         return Response.json(
             { error: { code: 'RATE_LIMITED', message: `Try again in ${rateLimit.retryAfterSec}s.` } },
             { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSec) } }
+        );
+    }
+
+    // IP-BASED BACKSTOP: 100 req/min per IP regardless of session ID.
+    // Prevents session-ID-rotation attacks that bypass the per-session limit.
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('x-real-ip')
+        || '127.0.0.1';
+    const ipRateLimit = checkChatIpRateLimit(ip);
+    if (ipRateLimit) {
+        console.log(`[${requestId}] IP rate limited ip=${ip}`);
+        return Response.json(
+            { error: { code: 'IP_RATE_LIMITED', message: `Too many requests from this IP. Try again in ${ipRateLimit.retryAfterSec}s.` } },
+            { status: 429, headers: { 'Retry-After': String(ipRateLimit.retryAfterSec) } }
         );
     }
 
@@ -233,7 +247,14 @@ export async function POST(req) {
                     result = await executeTool(name, args);
 
                     if (name === 'sync_booking_state') {
-                        bookingData = { ...bookingData, ...args };
+                        // DATA INTEGRITY: Merge from the validated result, not raw args.
+                        // The raw args may contain unnormalized data (e.g., unformatted
+                        // phone) or be rejected entirely (invalid phone). Only merge
+                        // when executeTool returned 'synced', never on error.
+                        const parsedResult = JSON.parse(result);
+                        if (parsedResult.status === 'synced' && parsedResult.data) {
+                            bookingData = { ...bookingData, ...parsedResult.data };
+                        }
                     }
                     // PII REDACTION: Strip customer names, phones, addresses from logs
                     await logEvent(sessionId, 'tool_call', { tool: name, args: redactToolArgs(args), result }, requestId);

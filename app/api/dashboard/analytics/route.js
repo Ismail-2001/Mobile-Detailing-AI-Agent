@@ -14,14 +14,23 @@ export async function GET() {
             supabaseAdmin.from('bookings').select('*').order('created_at', { ascending: false }),
         ]);
 
-        const revenue = revenueResult.data?.reduce((sum, b) => sum + (b.service_price || 0), 0) || 0;
+        // REVENUE INTEGRITY: Only sum bookings with a known service_price.
+        // A null/zero price means the real price was never synced from the chat
+        // session — treating it as $0 would silently undercount revenue.
+        const revenue = revenueResult.data?.reduce((sum, b) => {
+            if (b.service_price !== null && b.service_price > 0) {
+                return sum + b.service_price;
+            }
+            return sum;
+        }, 0) || 0;
 
         const revenueByDay = (bookingData.data || []).reduce((acc, b) => {
             if (!b.booking_date) return acc;
             const day = new Date(b.booking_date).toLocaleDateString('en-US', { weekday: 'short' });
             const existing = acc.find(d => d.day === day);
-            if (existing) existing.revenue += (b.service_price || 0);
-            else acc.push({ day, revenue: b.service_price || 0 });
+            const dayRevenue = (b.service_price !== null && b.service_price > 0) ? b.service_price : 0;
+            if (existing) existing.revenue += dayRevenue;
+            else acc.push({ day, revenue: dayRevenue });
             return acc;
         }, []);
 

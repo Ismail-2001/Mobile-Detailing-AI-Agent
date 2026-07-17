@@ -90,6 +90,26 @@ export async function POST(req) {
                 deposit_amount: metadata.deposit_amount,
             };
 
+            // REVENUE INTEGRITY: Use the real price from the chat session, not a
+            // fabricated formula. The price was computed by calculate_quote and
+            // synced via sync_booking_state throughout the conversation.
+            // Previously this was metadata.deposit_amount * 4, which produced a
+            // flat $200 for every booking regardless of service tier — making the
+            // dashboard revenue KPI completely fictional.
+            const realPrice = mergedCustomerData.price;
+            const servicePrice = (typeof realPrice === 'number' && realPrice > 0)
+                ? realPrice
+                : null;
+
+            if (servicePrice === null) {
+                console.warn(JSON.stringify({
+                    code: 'MISSING_REAL_PRICE',
+                    session_id: metadata.session_id,
+                    detail: 'Booking created without a real price from chat session. Analytics will show null for this booking.',
+                    timestamp: new Date().toISOString()
+                }));
+            }
+
             const { error: updateError } = await supabaseAdmin
                 .from('chat_sessions')
                 .update({
@@ -111,13 +131,13 @@ export async function POST(req) {
                         phone: metadata.phone || '',
                         vehicle_type: mergedCustomerData.vehicle_type || 'pending',
                         service: metadata.service,
-                        service_price: metadata.deposit_amount * 4,
+                        service_price: servicePrice,
                         booking_date: metadata.booking_date,
                         booking_time: metadata.booking_time || '09:00',
                         address: mergedCustomerData.address || '',
                         zip_code: mergedCustomerData.zip_code || '',
                         status: 'confirmed',
-                        notes: `Deposit paid via Stripe. Session: ${session.id}`,
+                        notes: `Deposit paid via Stripe. Session: ${session.id}${servicePrice === null ? ' (price missing from chat session)' : ''}`,
                     }]);
 
                 if (bookingError) {
@@ -132,7 +152,7 @@ export async function POST(req) {
                     customer_name: metadata.customer_name,
                     phone: metadata.phone,
                     service: metadata.service,
-                    service_price: metadata.deposit_amount * 4,
+                    service_price: servicePrice,
                     booking_date: metadata.booking_date,
                     booking_time: metadata.booking_time,
                     lead_score: 80,

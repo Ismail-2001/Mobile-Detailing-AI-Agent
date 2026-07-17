@@ -5,6 +5,7 @@ function createRateLimiter() {
     const requestCounts = new Map();
     const loginAttempts = new Map();
     const bookingCounts = new Map();
+    const chatIpCounts = new Map();
 
     const WINDOW_MS = 60 * 1000;
     const MAX_REQUESTS = 20;
@@ -72,7 +73,24 @@ function createRateLimiter() {
         return null;
     }
 
-    return { checkRateLimit, checkLoginRateLimit, checkBookingRateLimit };
+    const CHAT_IP_WINDOW_MS = 60 * 1000;
+    const CHAT_IP_MAX_REQUESTS = 100;
+
+    function checkChatIpRateLimit(ip, now = Date.now()) {
+        const entry = chatIpCounts.get(ip);
+        if (!entry || now - entry.windowStart > CHAT_IP_WINDOW_MS) {
+            chatIpCounts.set(ip, { count: 1, windowStart: now });
+            return null;
+        }
+        entry.count++;
+        if (entry.count > CHAT_IP_MAX_REQUESTS) {
+            const retryAfterMs = CHAT_IP_WINDOW_MS - (now - entry.windowStart);
+            return { retryAfterMs, retryAfterSec: Math.ceil(retryAfterMs / 1000) };
+        }
+        return null;
+    }
+
+    return { checkRateLimit, checkLoginRateLimit, checkBookingRateLimit, checkChatIpRateLimit };
 }
 
 describe('Chat Rate Limiter', () => {
@@ -186,5 +204,61 @@ describe('Booking Rate Limiter', () => {
             expect(limiter.checkBookingRateLimit('192.168.1.1', now)).toBeNull();
         }
         expect(limiter.checkBookingRateLimit('192.168.1.1', now)).not.toBeNull();
+    });
+});
+
+describe('Chat IP Rate Limiter', () => {
+    let limiter;
+
+    beforeEach(() => {
+        limiter = createRateLimiter();
+    });
+
+    it('allows first request from IP', () => {
+        expect(limiter.checkChatIpRateLimit('203.0.113.1')).toBeNull();
+    });
+
+    it('allows up to 100 requests from same IP', () => {
+        const now = 1000000;
+        for (let i = 0; i < 100; i++) {
+            expect(limiter.checkChatIpRateLimit('203.0.113.1', now)).toBeNull();
+        }
+    });
+
+    it('blocks after 101st request from same IP', () => {
+        const now = 1000000;
+        for (let i = 0; i < 100; i++) {
+            limiter.checkChatIpRateLimit('203.0.113.1', now);
+        }
+        const result = limiter.checkChatIpRateLimit('203.0.113.1', now);
+        expect(result).not.toBeNull();
+        expect(result.retryAfterSec).toBeGreaterThan(0);
+    });
+
+    it('resets after window expires', () => {
+        const now = 1000000;
+        for (let i = 0; i < 100; i++) {
+            limiter.checkChatIpRateLimit('203.0.113.1', now);
+        }
+        const afterWindow = now + 60001;
+        expect(limiter.checkChatIpRateLimit('203.0.113.1', afterWindow)).toBeNull();
+    });
+
+    it('tracks different IPs independently', () => {
+        const now = 1000000;
+        for (let i = 0; i < 100; i++) {
+            limiter.checkChatIpRateLimit('203.0.113.1', now);
+        }
+        expect(limiter.checkChatIpRateLimit('198.51.100.1', now)).toBeNull();
+    });
+
+    it('blocks IP that rotates session IDs', () => {
+        // Simulates attacker: 100 different session IDs but same IP
+        const now = 1000000;
+        for (let i = 0; i < 100; i++) {
+            limiter.checkChatIpRateLimit('203.0.113.1', now);
+        }
+        // 101st request from same IP, even with new "session", is blocked
+        expect(limiter.checkChatIpRateLimit('203.0.113.1', now)).not.toBeNull();
     });
 });
