@@ -45,13 +45,13 @@
 .avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, var(--gold) 0%, #B8860B 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--obsidian);
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 15px var(--gold-glow);
 }
 
 .botProfile h3 {
@@ -62,23 +62,30 @@
 
 .botProfile span {
     font-size: 0.8rem;
-    opacity: 0.6;
-    letter-spacing: 0.5px;
+    color: var(--text-secondary);
 }
 
 .closeBtn {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-subtle);
     color: var(--white);
     padding: 8px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .closeBtn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-hover);
     transform: rotate(90deg);
+}
+
+.closeBtn:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
 }
 
 .messageList {
@@ -108,7 +115,7 @@
     color: var(--obsidian);
     font-weight: 600;
     border-bottom-right-radius: 4px;
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 4px 15px var(--gold-glow);
 }
 
 .botRow {
@@ -116,7 +123,7 @@
 }
 
 .botRow .messageBubble {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-subtle);
     color: var(--platinum);
     border-bottom-left-radius: 4px;
     border: 1px solid var(--glass-border);
@@ -133,7 +140,7 @@
 
 .inputArea input[type="text"] {
     flex-grow: 1;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-subtle);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     padding: 12px 20px;
@@ -143,7 +150,7 @@
 
 .inputArea input[type="text"]:focus {
     border-color: var(--gold);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-hover);
 }
 
 .sendBtn {
@@ -156,6 +163,9 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 15px var(--gold-glow);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .sendBtn:hover:not(:disabled) {
@@ -168,6 +178,11 @@
     color: #666;
     box-shadow: none;
     cursor: not-allowed;
+}
+
+.sendBtn:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
 }
 
 .typing {
@@ -190,7 +205,6 @@
         transform: translateY(0);
         opacity: 0.3;
     }
-
     to {
         transform: translateY(-6px);
         opacity: 1;

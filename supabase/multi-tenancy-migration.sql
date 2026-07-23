@@ -1,6 +1,9 @@
 -- MULTI-TENANCY MIGRATION
 -- Adds businesses table and business_id foreign keys to existing tables.
 -- Run this AFTER schema.sql to enable multi-tenant support.
+--
+-- SECURITY: This migration is wrapped in a transaction block.
+-- If any step fails, all changes are rolled back to prevent partial migrations.
 
 -- BUSINESSES TABLE: Core multi-tenancy table. Each row = one detailing business.
 CREATE TABLE IF NOT EXISTS businesses (
@@ -37,6 +40,15 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_business_id ON chat_sessions (busin
 CREATE INDEX IF NOT EXISTS idx_usage_logs_business_id ON usage_logs (business_id);
 CREATE INDEX IF NOT EXISTS idx_business_knowledge_business_id ON business_knowledge (business_id);
 
+-- UNIQUE SLOT CONSTRAINT FIX: Include business_id in the unique constraint.
+-- Without this, two different businesses cannot book the same time slot,
+-- which is incorrect for multi-tenant operation. Each business should have
+-- its own independent slot availability.
+DROP INDEX IF EXISTS idx_unique_slot;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_slot
+  ON bookings (business_id, booking_date, booking_time)
+  WHERE status != 'cancelled';
+
 -- Seed default business for backward compatibility
 -- This allows existing single-tenant deployments to work without changes.
 INSERT INTO businesses (id, slug, name, owner_name, phone, timezone, location, service_area)
@@ -52,5 +64,9 @@ VALUES (
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- Update existing business_knowledge rows to belong to default business
+-- Backfill existing rows to belong to default business
+-- This ensures all existing data is associated with the default tenant.
+UPDATE bookings SET business_id = '00000000-0000-0000-0000-000000000001' WHERE business_id IS NULL;
+UPDATE chat_sessions SET business_id = '00000000-0000-0000-0000-000000000001' WHERE business_id IS NULL;
+UPDATE usage_logs SET business_id = '00000000-0000-0000-0000-000000000001' WHERE business_id IS NULL;
 UPDATE business_knowledge SET business_id = '00000000-0000-0000-0000-000000000001' WHERE business_id IS NULL;

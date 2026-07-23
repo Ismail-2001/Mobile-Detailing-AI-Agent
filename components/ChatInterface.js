@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './ChatInterface.module.css';
 import { Send, X, Bot } from 'lucide-react';
 import BookingSummary from './BookingSummary';
@@ -24,17 +25,36 @@ function formatMessage(text) {
     });
 }
 
-/**
- * SESSION ID MANAGEMENT:
- * Previously, the session ID was generated client-side in localStorage. A malicious
- * user could read another customer's booking data by setting their session ID header.
- * Now the server generates the session ID and returns it in the chat response.
- * The client stores it and sends it on subsequent requests.
- */
 function getStoredSessionId() {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('maya_session_id');
 }
+
+const containerVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 40 },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+    },
+    exit: {
+        opacity: 0,
+        scale: 0.95,
+        y: 20,
+        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+    },
+};
+
+const messageVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+    },
+};
 
 export default function ChatInterface({ onClose, initialMessage }) {
     const [messages, setMessages] = useState([
@@ -44,14 +64,53 @@ export default function ChatInterface({ onClose, initialMessage }) {
     const [isTyping, setIsTyping] = useState(false);
     const [bookingData, setBookingData] = useState(null);
     const [showSummary, setShowSummary] = useState(false);
-    // SSR HYDRATION FIX: Initialize sessionId as null, then set it in useEffect.
-    // Server generates the ID — we read it from localStorage on subsequent visits.
     const [sessionId, setSessionId] = useState(null);
     const [isLoadingSession, setIsLoadingSession] = useState(true);
     const messagesEndRef = useRef(null);
     const messagesRef = useRef(messages);
+    const overlayRef = useRef(null);
+    const inputRef = useRef(null);
 
-    // Read server-generated session ID from localStorage (set after first response)
+    // Focus trap
+    useEffect(() => {
+        const overlay = overlayRef.current;
+        if (!overlay) return;
+
+        const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        const firstFocusable = overlay.querySelector(focusableSelector);
+
+        firstFocusable?.focus();
+
+        function handleTab(e) {
+            if (e.key !== 'Tab') return;
+            const focusables = overlay.querySelectorAll(focusableSelector);
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+
+        overlay.addEventListener('keydown', handleTab);
+        return () => overlay.removeEventListener('keydown', handleTab);
+    }, [isLoadingSession]);
+
+    // Esc to close
+    useEffect(() => {
+        function handleEsc(e) {
+            if (e.key === 'Escape' && !isLoadingSession) {
+                onClose?.();
+            }
+        }
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose, isLoadingSession]);
+
     useEffect(() => {
         setSessionId(getStoredSessionId());
     }, []);
@@ -64,50 +123,36 @@ export default function ChatInterface({ onClose, initialMessage }) {
         scrollToBottom();
     }, [messages, isTyping]);
 
-    // Sync messagesRef with messages state so handleSend always reads current messages
     useEffect(() => {
         messagesRef.current = messages;
     }, [messages]);
 
     useEffect(() => {
-        // No stored session ID — this is a first visit. Start fresh immediately.
-        // Previously this returned early and left isLoadingSession stuck at true.
         if (!sessionId) {
             setIsLoadingSession(false);
             return;
         }
 
-        // --- BOOKING DATA PERSISTENCE FIX ---
-        // On mount, load the previous session state from Supabase so a page
-        // refresh continues the booking exactly where the user left off.
         const initSession = async () => {
             try {
-                // Ensure anonymous Supabase auth
                 if (supabase) {
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) {
                         await supabase.auth.signInAnonymously();
                     }
                 }
-
-                // Load persisted session state from Supabase
                 if (supabase && sessionId) {
                     const { data, error } = await supabase
                         .from('chat_sessions')
                         .select('message_history, customer_data')
                         .eq('session_id', sessionId)
                         .single();
-
                     if (!error && data) {
-                        // Restore message history if available
                         if (data.message_history && data.message_history.length > 0) {
                             setMessages(data.message_history);
                         }
-
-                        // Restore bookingData if available
                         if (data.customer_data && Object.keys(data.customer_data).length > 0) {
                             setBookingData(data.customer_data);
-                            // Show summary if we have enough data for a partial booking
                             if (data.customer_data.vehicle_type && data.customer_data.service) {
                                 setShowSummary(true);
                             }
@@ -123,7 +168,6 @@ export default function ChatInterface({ onClose, initialMessage }) {
         initSession();
     }, [sessionId]);
 
-    // Handle initialMessage for first visits (sessionId is null on first mount)
     const hasSentInitialRef = useRef(false);
     useEffect(() => {
         if (initialMessage && !hasSentInitialRef.current && !isLoadingSession) {
@@ -132,19 +176,11 @@ export default function ChatInterface({ onClose, initialMessage }) {
         }
     }, [initialMessage, isLoadingSession]);
 
-    const handleSend = async (text) => {
+    const handleSend = useCallback(async (text) => {
         const messageText = text || input;
         if (!messageText.trim()) return;
 
-        const newUserMessage = {
-            role: 'user',
-            content: messageText
-        };
-
-        // STALE CLOSURE FIX: Use messagesRef.current instead of messages state.
-        // The handleSend function captures `messages` at definition time. If it's
-        // called from useEffect (e.g., initialMessage), it reads stale state and
-        // loses messages loaded during session restore.
+        const newUserMessage = { role: 'user', content: messageText };
         const updatedMessages = [...messagesRef.current, newUserMessage];
         setMessages(updatedMessages);
         messagesRef.current = updatedMessages;
@@ -174,8 +210,6 @@ export default function ChatInterface({ onClose, initialMessage }) {
             const data = await response.json();
             setIsTyping(false);
 
-            // SERVER-GENERATED SESSION ID: Store the ID from the Set-Cookie header
-            // or response body so subsequent requests are authenticated.
             if (data.session_id && !sessionId) {
                 setSessionId(data.session_id);
                 localStorage.setItem('maya_session_id', data.session_id);
@@ -199,7 +233,7 @@ export default function ChatInterface({ onClose, initialMessage }) {
                 content: "I'm having a little trouble connecting to my brain right now."
             }]);
         }
-    };
+    }, [input, sessionId]);
 
     const confirmBooking = async () => {
         try {
@@ -213,8 +247,6 @@ export default function ChatInterface({ onClose, initialMessage }) {
                 setShowSummary(false);
             } else {
                 const err = await response.json();
-                // RACE CONDITION FIX: If 409, the slot was taken by another customer
-                // between availability check and booking creation. Show a clear message.
                 const errorMsg = err.error?.message || "Sorry, that time slot is no longer available. Could you pick a different time?";
                 setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
                 setShowSummary(false);
@@ -226,8 +258,19 @@ export default function ChatInterface({ onClose, initialMessage }) {
 
     if (isLoadingSession) {
         return (
-            <div className={styles.overlay}>
-                <div className={`${styles.container} animate-fade-in`}>
+            <motion.div
+                className={styles.overlay}
+                ref={overlayRef}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+            >
+                <motion.div
+                    className={styles.container}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
                     <div className={styles.header}>
                         <div className={styles.botProfile}>
                             <div className={styles.avatar}><Bot size={24} /></div>
@@ -236,73 +279,106 @@ export default function ChatInterface({ onClose, initialMessage }) {
                                 <span>Loading your session...</span>
                             </div>
                         </div>
-                        <button className={styles.closeBtn} onClick={onClose}><X size={24} /></button>
+                        <button className={styles.closeBtn} aria-label="Close chat" onClick={onClose}><X size={24} /></button>
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         );
     }
 
     return (
-        <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Chat with Maya">
-            <div className={`${styles.container} animate-fade-in`}>
-                <div className={styles.header}>
-                    <div className={styles.botProfile}>
-                        <div className={styles.avatar}><Bot size={24} /></div>
-                        <div>
-                            <h3>Maya</h3>
-                            <span>Online • AI Booking Assistant</span>
+        <AnimatePresence>
+            <motion.div
+                className={styles.overlay}
+                ref={overlayRef}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={(e) => { if (e.target === overlayRef.current) onClose?.(); }}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Chat with Maya"
+            >
+                <motion.div
+                    className={styles.container}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                >
+                    <div className={styles.header}>
+                        <div className={styles.botProfile}>
+                            <div className={styles.avatar}><Bot size={24} /></div>
+                            <div>
+                                <h3>Maya</h3>
+                                <span>Online &bull; AI Booking Assistant</span>
+                            </div>
                         </div>
+                        <button className={styles.closeBtn} aria-label="Close chat" onClick={onClose}><X size={24} /></button>
                     </div>
-                    <button className={styles.closeBtn} aria-label="Close chat" onClick={onClose}><X size={24} /></button>
-                </div>
 
-                <ErrorBoundary>
-                    <div className={styles.messageList} aria-live="polite">
-                    {messages.map((msg, i) => (
-                        <div key={i} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : styles.botRow}`}>
-                            <div className={styles.messageBubble}>
-                                {formatMessage(msg.content)}
-                            </div>
+                    <ErrorBoundary>
+                        <div className={styles.messageList} aria-live="polite">
+                            <AnimatePresence initial={false}>
+                                {messages.map((msg, i) => (
+                                    <motion.div
+                                        key={i}
+                                        className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : styles.botRow}`}
+                                        variants={messageVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        layout
+                                    >
+                                        <div className={styles.messageBubble}>
+                                            {formatMessage(msg.content)}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                            {isTyping && (
+                                <motion.div
+                                    className={styles.messageRow}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className={`${styles.messageBubble} ${styles.typing}`} aria-label="Maya is typing" role="status">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                </motion.div>
+                            )}
+                            {showSummary && (
+                                <BookingSummary
+                                    data={bookingData}
+                                    onConfirm={confirmBooking}
+                                    onCancel={() => setShowSummary(false)}
+                                />
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
-                    ))}
-                    {isTyping && (
-                        <div className={styles.messageRow}>
-                            <div className={`${styles.messageBubble} ${styles.typing}`} aria-label="Maya is typing" role="status">
-                                <span></span><span></span><span></span>
-                            </div>
-                        </div>
-                    )}
-                    {showSummary && (
-                        <BookingSummary
-                            data={bookingData}
-                            onConfirm={confirmBooking}
-                            onCancel={() => setShowSummary(false)}
-                        />
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
 
-                <div className={styles.inputArea}>
-                    <input
-                        type="text"
-                        aria-label="Type your message to Maya"
-                        placeholder={isTyping ? "Maya is thinking..." : "Type your message..."}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !isTyping && handleSend()}
-                        disabled={isTyping}
-                    />
-                    <button
-                        onClick={() => handleSend()}
-                        className={styles.sendBtn}
-                        disabled={!input.trim() || isTyping}
-                    >
-                        {isTyping ? <div className={styles.spinner}></div> : <Send size={20} />}
-                    </button>
-                </div>
-                </ErrorBoundary>
-            </div>
-        </div>
+                        <div className={styles.inputArea}>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                aria-label="Type your message to Maya"
+                                placeholder={isTyping ? "Maya is thinking..." : "Type your message..."}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && !isTyping && handleSend()}
+                                disabled={isTyping}
+                            />
+                            <button
+                                onClick={() => handleSend()}
+                                className={styles.sendBtn}
+                                disabled={!input.trim() || isTyping}
+                            >
+                                {isTyping ? <div className={styles.spinner}></div> : <Send size={20} />}
+                            </button>
+                        </div>
+                    </ErrorBoundary>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 }

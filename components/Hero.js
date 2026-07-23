@@ -1,46 +1,159 @@
+'use client';
+
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import MagneticButton from './MagneticButton';
+import FloatingParticles from './FloatingParticles';
 import styles from './Hero.module.css';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+
+const wordReveal = {
+    hidden: {},
+    visible: {
+        transition: {
+            staggerChildren: 0.08,
+            delayChildren: 0.3,
+        },
+    },
+};
+
+const wordChild = {
+    hidden: { opacity: 0, y: 40, filter: 'blur(8px)' },
+    visible: {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)',
+        transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+    },
+};
+
+const badgeReveal = {
+    hidden: { opacity: 0, scale: 0.8, y: 20 },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 },
+    },
+};
+
+const descReveal = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.8 },
+    },
+};
+
+const actionsReveal = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 1.0 },
+    },
+};
+
+const trustReveal = {
+    hidden: { opacity: 0, y: 40 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 1.2 },
+    },
+};
+
+const line1Words = ['Your', 'Car', 'Deserves'];
+const line2Words = ['Elite', 'Treatment'];
 
 export default function Hero() {
-    return (
-        <section className={styles.hero}>
-            <div className={styles.grainOverlay}></div>
-            <div className={styles.glowOrb1}></div>
-            <div className={styles.glowOrb2}></div>
+    const heroRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: heroRef,
+        offset: ['start start', 'end start'],
+    });
 
-            <div className={`${styles.content} animate-fade-in`}>
-                <div className={styles.badge}>
+    const orb1Y = useTransform(scrollYProgress, [0, 1], [0, -150]);
+    const orb2Y = useTransform(scrollYProgress, [0, 1], [0, -100]);
+    const orb1Scale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
+    const orb2Scale = useTransform(scrollYProgress, [0, 1], [1, 0.9]);
+
+    return (
+        <section ref={heroRef} className={styles.hero}>
+            <div className={styles.grainOverlay}></div>
+            <div className={styles.meshGradient}></div>
+            <FloatingParticles />
+            <motion.div className={styles.glowOrb1} style={{ y: orb1Y, scale: orb1Scale }}></motion.div>
+            <motion.div className={styles.glowOrb2} style={{ y: orb2Y, scale: orb2Scale }}></motion.div>
+
+            <motion.div
+                className={styles.content}
+                initial="hidden"
+                animate="visible"
+            >
+                <motion.div className={styles.badge} variants={badgeReveal}>
                     <span className={styles.badgeDot}></span>
                     Texas&apos; #1 Luxury Detailers
-                </div>
+                </motion.div>
 
                 <h1 className={styles.title}>
-                    Your Car Deserves<br />
-                    <span className={styles.highlight}>Elite Treatment</span>
+                    <motion.span
+                        className={styles.line}
+                        variants={wordReveal}
+                        initial="hidden"
+                        animate="visible"
+                    >
+                        {line1Words.map((word, i) => (
+                            <motion.span key={i} className={styles.word} variants={wordChild}>
+                                {word}
+                            </motion.span>
+                        ))}
+                    </motion.span>
+                    <br />
+                    <motion.span
+                        className={`${styles.line} ${styles.line2}`}
+                        variants={wordReveal}
+                        initial="hidden"
+                        animate="visible"
+                    >
+                        {line2Words.map((word, i) => (
+                            <motion.span
+                                key={i}
+                                className={`${styles.word} ${styles.highlight}`}
+                                variants={wordChild}
+                            >
+                                {word}
+                            </motion.span>
+                        ))}
+                    </motion.span>
                 </h1>
 
-                <p className={styles.description}>
+                <motion.p className={styles.description} variants={descReveal} initial="hidden" animate="visible">
                     Book your premium mobile detail in 60 seconds. Our AI Maya handles
                     everything 24/7. We come to you.
-                </p>
+                </motion.p>
 
-                <div className={styles.actions}>
-                    <button
+                <motion.div className={styles.actions} variants={actionsReveal} initial="hidden" animate="visible">
+                    <MagneticButton
                         className={styles.primaryBtn}
                         onClick={() => window.dispatchEvent(new CustomEvent('open-chat'))}
                     >
                         Start Booking
                         <ArrowRight size={18} />
-                    </button>
+                    </MagneticButton>
                     <button
                         className={styles.secondaryBtn}
-                        onClick={() => window.scrollTo({ top: document.getElementById('services')?.offsetTop || 0, behavior: 'smooth' })}
+                        onClick={() => {
+                            const el = document.getElementById('services');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
                     >
                         View Services
                     </button>
-                </div>
+                </motion.div>
 
-                <div className={styles.trustBar}>
+                <motion.div className={styles.trustBar} variants={trustReveal} initial="hidden" animate="visible">
                     <div className={styles.trustItem}>
                         <span className={styles.trustNumber}>2,400+</span>
                         <span className={styles.trustLabel}>Details Completed</span>
@@ -55,8 +168,8 @@ export default function Hero() {
                         <span className={styles.trustNumber}>24/7</span>
                         <span className={styles.trustLabel}>AI Concierge</span>
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
             <div className={styles.scrollIndicator}>
                 <div className={styles.scrollLine}></div>

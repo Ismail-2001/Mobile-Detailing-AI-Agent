@@ -1,5 +1,6 @@
 import './globals.css';
 import RootErrorBoundary from '@/components/RootErrorBoundary';
+import SmoothScroll from '@/components/SmoothScroll';
 
 export const metadata = {
   title: 'Mr. Cleaner Mobile Detailing | Premium Car Care in Texas',
@@ -10,9 +11,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <RootErrorBoundary>
-          {children}
-        </RootErrorBoundary>
+        <SmoothScroll>
+          <RootErrorBoundary>
+            {children}
+          </RootErrorBoundary>
+        </SmoothScroll>
       </body>
     </html>
   );

@@ -6,10 +6,13 @@ import Hero from '../components/Hero';
 import StatsCounter from '../components/StatsCounter';
 import ServiceMenu from '../components/ServiceMenu';
 import ValueProps from '../components/ValueProps';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import Testimonials from '../components/Testimonials';
 import CTASection from '../components/CTASection';
 import ChatButton from '../components/ChatButton';
 import ChatInterface from '../components/ChatInterface';
+import PageLoader from '../components/PageLoader';
+import CursorRing from '../components/CursorRing';
 
 export default function Home() {
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -29,31 +32,31 @@ export default function Home() {
         return () => window.removeEventListener('open-chat', handleOpenChat);
     }, []);
 
-    // Scroll Reveal Observer
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            },
-            { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-        );
-
-        document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
-        return () => observer.disconnect();
-    }, []);
-
     return (
-        <main className="grain" style={{ backgroundColor: 'var(--obsidian)' }}>
+        <>
+            <CursorRing />
+            <PageLoader />
+            <main className="grain" style={{ backgroundColor: 'var(--obsidian)' }}>
             <Navbar />
             <Hero />
             <StatsCounter />
-
             <ServiceMenu />
             <ValueProps />
+            <section style={{ padding: 'var(--section-padding)', backgroundColor: 'var(--obsidian)' }}>
+                <div className="container">
+                    <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+                        <span style={{ color: 'var(--gold)', textTransform: 'uppercase', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '3px', display: 'block', marginBottom: '20px' }}>Results</span>
+                        <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: 'var(--white)', marginBottom: '20px', letterSpacing: '-1px' }}>See The Difference</h2>
+                        <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto' }}>Drag the slider to compare before and after our detailing service</p>
+                    </div>
+                    <BeforeAfterSlider
+                        beforeSrc="https://images.unsplash.com-1507136566046-c830cc9635b3?w=800&q=80"
+                        afterSrc="https://images.unsplash.com-1507136566046-c830cc9635b3?w=800&q=80&sat=-100"
+                        beforeAlt="Vehicle before detailing"
+                        afterAlt="Vehicle after detailing"
+                    />
+                </div>
+            </section>
             <Testimonials />
             <CTASection />
 
@@ -139,6 +142,7 @@ export default function Home() {
                     </div>
                 </div>
             </footer>
-        </main>
+            </main>
+        </>
     );
 }

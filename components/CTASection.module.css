@@ -1,5 +1,5 @@
 .section {
-    padding: 140px 0;
+    padding: var(--section-padding);
     background: var(--coal);
     position: relative;
     overflow: hidden;
@@ -31,19 +31,19 @@
     font-weight: 700;
     font-size: 0.8rem;
     letter-spacing: 3px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .title {
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
     color: var(--white);
     margin-bottom: 24px;
-    letter-spacing: -2px;
+    letter-spacing: -1px;
     line-height: 1.1;
 }
 
 .gold {
-    background: linear-gradient(135deg, var(--gold) 0%, #F0D060 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -51,7 +51,7 @@
 
 .description {
     font-size: 1.15rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
     margin-bottom: 48px;
     line-height: 1.7;
 }
@@ -70,19 +70,23 @@
     background: var(--gold);
     color: var(--obsidian);
     padding: 18px 40px;
-    border-radius: 100px;
+    border-radius: var(--border-radius-pill);
     font-weight: 700;
     font-size: 1rem;
     font-family: var(--font-heading);
     border: none;
     cursor: pointer;
     box-shadow: 0 10px 40px var(--gold-glow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .primaryBtn:hover {
     transform: translateY(-3px) scale(1.02);
     box-shadow: 0 20px 50px var(--gold-glow);
+}
+
+.primaryBtn:focus-visible {
+    box-shadow: var(--focus-ring), 0 10px 40px var(--gold-glow);
 }
 
 .secondaryBtn {
@@ -92,28 +96,32 @@
     background: transparent;
     color: var(--white);
     padding: 18px 40px;
-    border-radius: 100px;
+    border-radius: var(--border-radius-pill);
     font-weight: 600;
     font-size: 1rem;
     font-family: var(--font-heading);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--glass-border);
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
     cursor: pointer;
 }
 
 .secondaryBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-hover);
     border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
 }
 
-.note {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.25);
+.secondaryBtn:focus-visible {
+    box-shadow: var(--focus-ring);
 }
 
-@media (max-width: 600px) {
+.note {
+    font-size: 0.8rem;
+    color: var(--text-faint);
+}
+
+@media (max-width: 640px) {
     .actions {
         flex-direction: column;
         align-items: center;

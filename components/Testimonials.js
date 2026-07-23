@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import styles from './Testimonials.module.css';
 import { Star, Quote } from 'lucide-react';
 
@@ -27,21 +28,59 @@ const testimonials = [
     }
 ];
 
+const headerReveal = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+    },
+};
+
+const containerReveal = {
+    hidden: {},
+    visible: {
+        transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+    },
+};
+
+const cardReveal = {
+    hidden: { opacity: 0, y: 50, scale: 0.95 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+    },
+};
+
 export default function Testimonials() {
     return (
         <section className={styles.section}>
             <div className="container">
-                <div className={styles.header}>
+                <motion.div
+                    className={styles.header}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                    variants={headerReveal}
+                >
                     <span className={styles.badge}>Client Stories</span>
                     <h2 className={styles.title}>Trusted by Texas&apos; Finest</h2>
                     <p className={styles.subtitle}>
                         Hear from vehicle owners who trust us with their most prized possessions.
                     </p>
-                </div>
+                </motion.div>
 
-                <div className={styles.grid}>
+                <motion.div
+                    className={styles.grid}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                    variants={containerReveal}
+                >
                     {testimonials.map((t, i) => (
-                        <div key={i} className={`${styles.card} reveal reveal-delay-${i + 1}`}>
+                        <motion.div key={i} className={styles.card} variants={cardReveal}>
                             <div className={styles.quoteIcon}>
                                 <Quote size={24} />
                             </div>
@@ -58,9 +97,9 @@ export default function Testimonials() {
                                     <div className={styles.role}>{t.role} &middot; {t.location}</div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </section>
     );

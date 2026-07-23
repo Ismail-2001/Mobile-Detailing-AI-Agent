@@ -1,5 +1,5 @@
 .section {
-    padding: 80px 0;
+    padding: var(--section-padding);
     background: var(--coal);
     border-top: 1px solid var(--glass-border);
     border-bottom: 1px solid var(--glass-border);
@@ -36,7 +36,7 @@
     line-height: 1;
     display: block;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, var(--gold) 0%, #F0D060 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -54,7 +54,7 @@
 
 .description {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-muted);
     letter-spacing: 0.5px;
 }
 
@@ -68,7 +68,7 @@
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
     .grid {
         grid-template-columns: 1fr 1fr;
         gap: 24px;

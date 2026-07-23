@@ -16,6 +16,20 @@
   --border-radius-md: 12px;
   --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.5);
   --blur-amount: 20px;
+  --text-primary: rgba(255, 255, 255, 0.75);
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-faint: rgba(255, 255, 255, 0.3);
+  --surface-subtle: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --gold-light: #F0D060;
+  --gold-dark: #B8860B;
+  --border-radius-pill: 100px;
+  --border-radius-btn: 14px;
+  --section-padding: 120px 0;
+  --card-hover-y: -8px;
+  --card-hover-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  --focus-ring: 0 0 0 3px rgba(212, 175, 55, 0.5);
   --font-heading: 'Big Shoulders Display', sans-serif;
   --font-body: 'Manrope', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
@@ -28,7 +42,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 html, body {
@@ -75,25 +89,8 @@ h1, h2, h3, h4, h5, h6 {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.4;
+  opacity: 0.15;
 }
-
-/* Scroll Reveal */
-.reveal {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
 
 /* Animations */
 @keyframes fadeIn {
@@ -175,7 +172,8 @@ input, textarea, select {
 
 input:focus, textarea:focus {
   border-color: var(--gold);
-  outline: none;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* Selection */
@@ -196,4 +194,38 @@ input:focus, textarea:focus {
 ::-webkit-scrollbar-thumb {
   background: var(--gold);
   border-radius: 3px;
+}
+
+/* Focus Visible */
+*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .grain::before {
+    display: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

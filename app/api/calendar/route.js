@@ -1,5 +1,6 @@
 import { checkAvailability } from '@/lib/calendar';
 import { checkBookingRateLimit } from '@/lib/rate-limit';
+import { resolveBusinessId } from '@/lib/tenant';
 
 export async function GET(req) {
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
@@ -22,7 +23,10 @@ export async function GET(req) {
         return Response.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
     }
 
-    const slots = await checkAvailability(date);
+    // MULTI-TENANT: Resolve business for scoped availability check.
+    const businessId = await resolveBusinessId(req);
+
+    const slots = await checkAvailability(date, 120, businessId);
     return Response.json(slots, {
         headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     });

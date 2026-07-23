@@ -1,6 +1,31 @@
 .section {
-    padding: 140px 0;
+    padding: var(--section-padding);
     background-color: var(--obsidian);
+    position: relative;
+}
+
+.section::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, transparent, var(--obsidian));
+    pointer-events: none;
+    z-index: 1;
+}
+
+.section::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, transparent, var(--obsidian));
+    pointer-events: none;
+    z-index: 1;
 }
 
 .header {
@@ -27,7 +52,7 @@
 
 .subtitle {
     font-size: 1.15rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     max-width: 500px;
     margin: 0 auto;
 }
@@ -40,21 +65,21 @@
 }
 
 .card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    background: var(--surface-subtle);
     padding: 48px 40px;
-    border-radius: 24px;
+    border-radius: var(--border-radius-lg);
     border: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-8px);
+    transform: translateY(var(--card-hover-y));
     border-color: rgba(212, 175, 55, 0.3);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--card-hover-shadow);
 }
 
 .popular {
@@ -64,7 +89,7 @@
 }
 
 .popular:hover {
-    transform: scale(1.02) translateY(-8px);
+    transform: scale(1.02) translateY(var(--card-hover-y));
 }
 
 .popBadge {
@@ -74,7 +99,7 @@
     background: var(--gold);
     color: var(--obsidian);
     padding: 6px 16px;
-    border-radius: 100px;
+    border-radius: var(--border-radius-pill);
     font-family: var(--font-heading);
     font-weight: 800;
     font-size: 0.7rem;
@@ -85,11 +110,38 @@
 .cardHeader {
     margin-bottom: 32px;
     padding-bottom: 32px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.iconContainer {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .iconContainer {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+}
+
+.serviceIcon {
+    color: var(--gold);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .serviceIcon {
+    transform: scale(1.1);
 }
 
 .cardTitle {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     margin-bottom: 20px;
     color: var(--white);
     font-weight: 700;
@@ -109,11 +161,16 @@
     color: var(--platinum);
     line-height: 1;
     letter-spacing: -2px;
+    transition: text-shadow 0.4s ease;
+}
+
+.card:hover .price {
+    text-shadow: 0 0 30px var(--gold-glow), 0 0 60px rgba(212, 175, 55, 0.2);
 }
 
 .suffix {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-faint);
 }
 
 .duration {
@@ -139,20 +196,25 @@
     align-items: center;
     gap: 14px;
     font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-primary);
 }
 
-.icon {
+.featureIcon {
     color: var(--gold);
     flex-shrink: 0;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.card:hover .featureIcon {
+    transform: scale(1.2);
 }
 
 .btn {
     width: 100%;
     padding: 16px;
-    border-radius: 14px;
+    border-radius: var(--border-radius-btn);
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     color: var(--white);
     font-weight: 600;
     font-size: 0.95rem;
@@ -161,19 +223,23 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
     cursor: pointer;
 }
 
 .btn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-hover);
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:focus-visible {
+    box-shadow: var(--focus-ring);
 }
 
 .activeBtn {
     width: 100%;
     padding: 16px;
-    border-radius: 14px;
+    border-radius: var(--border-radius-btn);
     background: var(--gold);
     color: var(--obsidian);
     font-weight: 700;
@@ -184,7 +250,7 @@
     justify-content: center;
     gap: 8px;
     box-shadow: 0 10px 30px var(--gold-glow);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     cursor: pointer;
     border: none;
 }
@@ -194,11 +260,27 @@
     box-shadow: 0 15px 40px var(--gold-glow);
 }
 
+.activeBtn:focus-visible {
+    box-shadow: var(--focus-ring), 0 10px 30px var(--gold-glow);
+}
+
 @media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 640px) {
     .grid {
         grid-template-columns: 1fr;
         max-width: 500px;
         margin: 0 auto;
+    }
+
+    .card {
+        padding: 32px 24px;
     }
 
     .popular {
@@ -206,6 +288,6 @@
     }
 
     .popular:hover {
-        transform: translateY(-8px);
+        transform: translateY(var(--card-hover-y));
     }
 }

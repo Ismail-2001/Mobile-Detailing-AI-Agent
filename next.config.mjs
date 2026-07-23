@@ -12,6 +12,9 @@ const nextConfig = {
                 { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
                 {
                     key: 'Content-Security-Policy',
+                    // NOTE: 'unsafe-eval' and 'unsafe-inline' are required by Next.js
+                    // for hydration scripts and RSC. To remove them, implement nonce-based
+                    // CSP using next/script with nonce prop. See: https://nextjs.org/docs/app/building-your-application/security/content-security-policy
                     value: [
                         "default-src 'self'",
                         "script-src 'self' 'unsafe-eval' 'unsafe-inline'",

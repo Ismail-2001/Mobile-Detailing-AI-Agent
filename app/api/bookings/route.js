@@ -6,6 +6,7 @@ import { checkAvailability } from '@/lib/calendar';
 import { validateBody, BookingRequestSchema } from '@/lib/api-validation';
 import { checkBookingRateLimit } from '@/lib/rate-limit';
 import { redactBookingData } from '@/lib/pii-redact';
+import { resolveBusinessId } from '@/lib/tenant';
 
 /**
  * WHY THIS RE-VERIFICATION EXISTS:
@@ -43,8 +44,8 @@ function parseTimeToMinutes(timeStr) {
     return null;
 }
 
-async function isSlotStillAvailable(date, time) {
-    const slots = await checkAvailability(date);
+async function isSlotStillAvailable(date, time, businessId) {
+    const slots = await checkAvailability(date, 120, businessId);
     const requestedMinutes = parseTimeToMinutes(time);
 
     if (requestedMinutes === null) {
@@ -132,11 +133,15 @@ export async function POST(req) {
         // PII REDACTION: Never log raw customer data
         console.log(`[${requestId}] Creating booking:`, redactBookingData(bookingData));
 
+        // MULTI-TENANT: Resolve which business this booking belongs to.
+        const businessId = await resolveBusinessId(req);
+
         // RACE CONDITION FIX: Re-verify slot availability immediately before insert.
         if (bookingData.booking_date && bookingData.booking_time) {
             const stillAvailable = await isSlotStillAvailable(
                 bookingData.booking_date,
-                bookingData.booking_time
+                bookingData.booking_time,
+                businessId
             );
             if (!stillAvailable) {
                 console.log(`[${requestId}] Slot taken:`, bookingData.booking_date, bookingData.booking_time);
@@ -147,7 +152,7 @@ export async function POST(req) {
         }
 
         // 1. Save to Database
-        const { data, error } = await createBooking(bookingData);
+        const { data, error } = await createBooking(bookingData, businessId);
         if (error) {
             if (error.code === 'SLOT_TAKEN') {
                 return Response.json({ error: { ...error, request_id: requestId } }, { status: 409 });

@@ -41,12 +41,14 @@ OPENWEATHER_API_KEY      — Weather forecasts disabled
 
 ## 4. Technical Limitations
 
-- **Rate Limiting**: Chat API limited to 20 req/min per session; bookings POST limited to 10/min
+- **Rate Limiting**: Chat API limited to 20 req/min per session + 30 req/min per IP (backstop); bookings POST limited to 5/min per IP
 - **CSRF Protection**: POST/PUT/DELETE requests require Origin/Referer matching
 - **Session Expiry**: Dashboard sessions expire after 8 hours (configurable in `lib/session.js`)
 - **File Uploads**: Not implemented (codebase uses text-only chat)
 - **Multi-Tenancy**: Single-tenant install by default; multi-tenancy architecture planned but not deployed
 - **Google Calendar**: Requires manual OAuth setup in Google Cloud Console (step-by-step guide below)
+- **CSP**: Uses `unsafe-inline` and `unsafe-eval` required by Next.js hydration. To remove, implement nonce-based CSP with `next/script` nonce prop.
+- **Rate Limiter Storage**: In-memory (Map-based). Resets on server restart, doesn't work across Vercel serverless instances. Before scaling, migrate to Redis or Supabase-backed rate limiting.
 
 ## 5. Google Calendar Setup Guide (Required for Booking Sync)
 
@@ -67,13 +69,15 @@ OPENWEATHER_API_KEY      — Weather forecasts disabled
 | RLS Policies | ✅ All tables have RLS enforced |
 | Auth | ✅ Server-side JWT auth (no client-side password check) |
 | CSRF | ✅ Origin/Referer validation on state-changing requests |
-| Rate Limiting | ✅ Per-session + IP-based rate limiting |
+| Rate Limiting | ✅ Per-session + IP-based rate limiting (30/min IP backstop) |
 | Input Validation | ✅ Zod schemas on all API endpoints |
 | Session Revocation | ✅ Logout immediately invalidates JWT |
-| PII Redaction | ✅ Customer names/phones redacted from logs |
+| PII Redaction | ✅ Customer names/phones redacted from logs (args + results) |
 | XSS Protection | ✅ Content-Security-Policy headers set |
 | HTTPS | ✅ Enforced on Vercel production |
 | API Keys | ✅ No keys exposed in client bundle |
+| Model Failover | ✅ Per-request provider fallback (Gemini → DeepSeek → OpenAI) |
+| Logging Resilience | ✅ Log failures don't crash customer-facing responses |
 
 ## 7. Post-Launch Monitoring
 

@@ -1,12 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 import { OpenAI } from 'openai';
-import { generateMayaPrompt } from '@/lib/ai-agent';
+import { buildSystemPrompt } from '@/lib/ai-agent';
 import { MAYA_TOOLS, executeTool } from '@/lib/tools';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkRateLimit, checkChatIpRateLimit } from '@/lib/rate-limit';
 import { validateBody, ChatRequestSchema } from '@/lib/api-validation';
 import { redactToolArgs } from '@/lib/pii-redact';
 import { withTimeout, DEFAULT_TIMEOUT_MS } from '@/lib/timeout';
+import { resolveBusinessId, getBusinessConfig } from '@/lib/tenant';
 
 const SESSION_COOKIE_NAME = 'chat_session_id';
 const SESSION_ID_REGEX = /^[a-zA-Z0-9_-]{1,100}$/;
@@ -35,12 +36,6 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || 'dummy',
 });
 
-function getClient(model) {
-    if (model.includes('gemini')) return gemini;
-    if (model.includes('deepseek')) return deepseek;
-    return openai;
-}
-
 const hasGemini = !!process.env.GEMINI_API_KEY;
 const hasDeepSeek = !!process.env.DEEPSEEK_API_KEY;
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -48,11 +43,13 @@ const hasAnyAI = hasGemini || hasDeepSeek || hasOpenAI;
 
 async function logEvent(sessionId, type, payload, requestId) {
     if (supabaseAdmin) {
-        await supabaseAdmin.from('usage_logs').insert([{
+        supabaseAdmin.from('usage_logs').insert([{
             session_id: sessionId,
             event_type: type,
             payload: { ...payload, request_id: requestId }
-        }]);
+        }]).catch(err => {
+            console.error(`[${requestId}] Log event failed:`, err.message);
+        });
     }
 }
 
@@ -131,29 +128,19 @@ export async function POST(req) {
             day: 'numeric'
         });
 
-        // Load business config from Supabase for dynamic prompt templating.
-        // Falls back to env vars if business_knowledge table doesn't exist yet.
-        let businessConfig = {};
-        if (supabaseAdmin) {
-            try {
-                const { data: kbData } = await supabaseAdmin
-                    .from('business_knowledge')
-                    .select('id, data')
-                    .in('id', ['pricing', 'service_area', 'policies']);
+        // MULTI-TENANT: Resolve which business this request belongs to.
+        const businessId = await resolveBusinessId(req);
 
-                if (kbData && kbData.length > 0) {
-                    const kbMap = Object.fromEntries(kbData.map(k => [k.id, k.data]));
-                    if (kbMap.service_area) {
-                        businessConfig.service_area_zips = kbMap.service_area.zip_codes || [];
-                        businessConfig.business_location = kbMap.service_area.counties?.join(', ') || '';
-                    }
-                }
-            } catch {
-                // business_knowledge table may not exist yet — use env defaults
-            }
+        // Load business config from Supabase for dynamic prompt templating.
+        // Falls back to env vars if business doesn't exist yet.
+        const business = await getBusinessConfig(businessId);
+        const businessOverrides = {};
+
+        if (business?.knowledge?.service_area) {
+            businessOverrides.service_area_zips = business.knowledge.service_area.zip_codes || [];
         }
 
-        const systemPrompt = generateMayaPrompt(businessConfig);
+        const systemPrompt = buildSystemPrompt(business || {}, businessOverrides);
 
         const apiMessages = [
             {
@@ -178,26 +165,44 @@ export async function POST(req) {
             }
         }
 
+        // MODEL FAILOVER: Try providers in priority order (Gemini > DeepSeek > OpenAI).
+        // If one is down at runtime, fall back to the next instead of failing the request.
+        const availableModels = [];
+        if (hasGemini) availableModels.push({ model: "gemini-2.0-flash", client: gemini });
+        if (hasDeepSeek) availableModels.push({ model: "deepseek-chat", client: deepseek });
+        if (hasOpenAI) availableModels.push({ model: "gpt-4o", client: openai });
+
         let iteration = 0;
         const maxIterations = 5;
 
         while (iteration < maxIterations) {
-            // Priority: Gemini > DeepSeek > OpenAI
-            const model = hasGemini ? "gemini-2.0-flash" : hasDeepSeek ? "deepseek-chat" : "gpt-4o";
-            const client = getClient(model);
+            console.log(`[${requestId}] Iteration ${iteration + 1}/${maxIterations}`);
 
-            console.log(`[${requestId}] Using model: ${model} (iteration ${iteration + 1})`);
+            let response = null;
+            let lastError = null;
+            for (const { model, client } of availableModels) {
+                try {
+                    response = await withTimeout(
+                        client.chat.completions.create({
+                            model: model,
+                            messages: apiMessages,
+                            tools: MAYA_TOOLS,
+                            tool_choice: 'auto',
+                        }),
+                        DEFAULT_TIMEOUT_MS,
+                        `AI ${model}`
+                    );
+                    console.log(`[${requestId}] Model ${model} succeeded`);
+                    break;
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`[${requestId}] Model ${model} failed: ${err.message}, trying next...`);
+                }
+            }
 
-            const response = await withTimeout(
-                client.chat.completions.create({
-                    model: model,
-                    messages: apiMessages,
-                    tools: MAYA_TOOLS,
-                    tool_choice: 'auto',
-                }),
-                DEFAULT_TIMEOUT_MS,
-                `AI ${model}`
-            );
+            if (!response) {
+                throw lastError || new Error("No AI models available");
+            }
 
             const assistantMessage = response.choices[0].message;
             apiMessages.push(assistantMessage);
@@ -213,7 +218,7 @@ export async function POST(req) {
                     });
                 }
 
-                await logEvent(sessionId, 'chat_message', { content: assistantMessage.content }, requestId);
+                logEvent(sessionId, 'chat_message', { content: assistantMessage.content }, requestId);
 
                 const responseData = {
                     role: 'assistant',
@@ -245,7 +250,7 @@ export async function POST(req) {
 
                 try {
                     const args = JSON.parse(toolCall.function.arguments);
-                    result = await executeTool(name, args);
+                    result = await executeTool(name, args, businessId);
 
                     if (name === 'sync_booking_state') {
                         // DATA INTEGRITY: Merge from the validated result, not raw args.
@@ -258,7 +263,7 @@ export async function POST(req) {
                         }
                     }
                     // PII REDACTION: Strip customer names, phones, addresses from logs
-                    await logEvent(sessionId, 'tool_call', { tool: name, args: redactToolArgs(args), result }, requestId);
+                    logEvent(sessionId, 'tool_call', { tool: name, args: redactToolArgs(args), result: redactToolArgs(result) }, requestId);
                 } catch (e) {
                     console.error(`[${requestId}] Tool Error [${name}]:`, e.message);
                     result = JSON.stringify({ error: "Failed to process tool request" });
@@ -284,10 +289,21 @@ export async function POST(req) {
             timestamp: new Date().toISOString()
         }));
 
+        // Persist partial bookingData so the customer doesn't lose their progress
+        if (supabaseAdmin && sessionId !== 'anonymous') {
+            await supabaseAdmin.from('chat_sessions').upsert({
+                session_id: sessionId,
+                customer_data: bookingData,
+                message_history: apiMessages.filter(m => m.role !== 'system'),
+                last_active: new Date().toISOString()
+            });
+        }
+
         return Response.json({
             role: 'assistant',
             content: "This conversation is taking longer than expected. Let me have our team follow up with you directly to make sure everything is perfect.",
             bookingData,
+            session_id: sessionId,
             error: { code: 'MAX_ITERATIONS_EXCEEDED', request_id: requestId }
         });
 

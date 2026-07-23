@@ -12,12 +12,17 @@
     justify-content: center;
     box-shadow: 0 10px 30px var(--gold-glow);
     z-index: 1000;
-    animation: pulse 2s infinite;
+    border: none;
+    cursor: pointer;
 }
 
 .button:hover {
-    transform: scale(1.1);
     box-shadow: 0 15px 40px var(--gold-glow);
+}
+
+.button:focus-visible {
+    outline: 3px solid var(--obsidian);
+    outline-offset: 3px;
 }
 
 .tooltip {

@@ -1,39 +1,33 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 import styles from './StatsCounter.module.css';
 
 function AnimatedNumber({ target, suffix = '', prefix = '' }) {
     const [count, setCount] = useState(0);
     const ref = useRef(null);
     const hasAnimated = useRef(false);
+    const isInView = useInView(ref, { once: true, margin: '-50px' });
 
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && !hasAnimated.current) {
-                    hasAnimated.current = true;
-                    const duration = 2000;
-                    const steps = 60;
-                    const increment = target / steps;
-                    let current = 0;
-                    const timer = setInterval(() => {
-                        current += increment;
-                        if (current >= target) {
-                            setCount(target);
-                            clearInterval(timer);
-                        } else {
-                            setCount(Math.floor(current));
-                        }
-                    }, duration / steps);
+        if (isInView && !hasAnimated.current) {
+            hasAnimated.current = true;
+            const duration = 2000;
+            const steps = 60;
+            const increment = target / steps;
+            let current = 0;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    setCount(target);
+                    clearInterval(timer);
+                } else {
+                    setCount(Math.floor(current));
                 }
-            },
-            { threshold: 0.5 }
-        );
-
-        if (ref.current) observer.observe(ref.current);
-        return () => observer.disconnect();
-    }, [target]);
+            }, duration / steps);
+        }
+    }, [isInView, target]);
 
     return (
         <span ref={ref} className={styles.number}>
@@ -49,19 +43,41 @@ const stats = [
     { number: 3, suffix: 'x', label: 'Revenue Growth', description: 'Since AI integration' },
 ];
 
+const containerReveal = {
+    hidden: {},
+    visible: {
+        transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+    },
+};
+
+const cardReveal = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+    },
+};
+
 export default function StatsCounter() {
     return (
         <section className={styles.section}>
             <div className="container">
-                <div className={styles.grid}>
+                <motion.div
+                    className={styles.grid}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-50px' }}
+                    variants={containerReveal}
+                >
                     {stats.map((stat, i) => (
-                        <div key={i} className={`${styles.card} reveal reveal-delay-${i + 1}`}>
+                        <motion.div key={i} className={styles.card} variants={cardReveal}>
                             <AnimatedNumber target={stat.number} suffix={stat.suffix} />
                             <div className={styles.label}>{stat.label}</div>
                             <div className={styles.description}>{stat.description}</div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </section>
     );
