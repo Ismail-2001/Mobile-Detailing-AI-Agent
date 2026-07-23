@@ -203,3 +203,90 @@ describe('buildSystemPrompt', () => {
         expect(prompt).toContain('Legacy Test');
     });
 });
+
+// ─── Category E1: Cross-Tenant Data Isolation ────────────────────────────────
+// Two dummy businesses seed bookings. GET /api/bookings must never leak
+// Business B's data when called with Business A's session (and vice versa).
+
+describe('Category E1: cross-tenant booking isolation', () => {
+    it('Business A GET returns only A bookings, not B', async () => {
+        vi.clearAllMocks();
+
+        const bookingsA = [
+            { id: 'a-1', customer_name: 'Alice', business_id: BUSINESS_A_ID, booking_date: '2026-08-01' },
+            { id: 'a-2', customer_name: 'Anita', business_id: BUSINESS_A_ID, booking_date: '2026-08-02' },
+        ];
+        const bookingsB = [
+            { id: 'b-1', customer_name: 'Bob', business_id: BUSINESS_B_ID, booking_date: '2026-08-01' },
+        ];
+
+        // getBookings chain: from().select('*').order('created_at', {...}).eq('business_id', X)
+        const mockOrderA = vi.fn().mockResolvedValue({ data: bookingsA, error: null });
+        const mockOrderB = vi.fn().mockResolvedValue({ data: bookingsB, error: null });
+
+        // After .order(), we get an object with .eq()
+        const afterOrderA = { eq: vi.fn().mockResolvedValue({ data: bookingsA, error: null }) };
+        const afterOrderB = { eq: vi.fn().mockResolvedValue({ data: bookingsB, error: null }) };
+
+        // .order() is called on the select result, returns promise directly
+        // But getBookings does: query = query.eq(...) AFTER order, so the chain is:
+        // from().select('*').order(...) → then optionally .eq()
+        // Actually looking at the code more carefully:
+        // let query = db.from('bookings').select('*').order('created_at', { ascending: false });
+        // if (businessId) { query = query.eq('business_id', businessId); }
+        // So .order() returns an object with .eq() on it
+
+        const mockEqA = vi.fn().mockResolvedValue({ data: bookingsA, error: null });
+        const mockEqB = vi.fn().mockResolvedValue({ data: bookingsB, error: null });
+
+        // .select('*').order() returns { eq: fn }
+        const selectA = vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({ eq: mockEqA }),
+        });
+        const selectB = vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({ eq: mockEqB }),
+        });
+
+        const fromFn = vi.fn()
+            .mockReturnValueOnce({ select: selectA })
+            .mockReturnValueOnce({ select: selectB });
+
+        const sa = (await import('@/lib/supabase-admin')).supabaseAdmin;
+        sa.from.mockImplementation(fromFn);
+
+        const { getBookings } = await import('@/lib/supabase');
+
+        const resultA = await getBookings(BUSINESS_A_ID);
+        const resultB = await getBookings(BUSINESS_B_ID);
+
+        // Business A sees only its bookings
+        expect(resultA.data).toHaveLength(2);
+        expect(resultA.data.every(b => b.business_id === BUSINESS_A_ID)).toBe(true);
+
+        // Business B sees only its bookings
+        expect(resultB.data).toHaveLength(1);
+        expect(resultB.data[0].business_id).toBe(BUSINESS_B_ID);
+    });
+
+    it('getBookings without businessId returns all (no eq filter)', async () => {
+        vi.clearAllMocks();
+
+        const allBookings = [
+            { id: 'a-1', business_id: BUSINESS_A_ID },
+            { id: 'b-1', business_id: BUSINESS_B_ID },
+        ];
+
+        // from().select('*').order() — no .eq() called
+        const mockOrder = vi.fn().mockResolvedValue({ data: allBookings, error: null });
+        const mockSelect = vi.fn().mockReturnValue({ order: mockOrder });
+
+        const sa = (await import('@/lib/supabase-admin')).supabaseAdmin;
+        sa.from.mockReturnValue({ select: mockSelect });
+
+        const { getBookings } = await import('@/lib/supabase');
+        const result = await getBookings();
+
+        expect(result.data).toHaveLength(2);
+        expect(mockSelect).toHaveBeenCalledWith('*');
+    });
+});

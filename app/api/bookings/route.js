@@ -78,7 +78,11 @@ export async function GET(req) {
     }
 
     try {
-        const { data, error } = await getBookings();
+        // MULTI-TENANT: Resolve which business this dashboard request is for.
+        // Without this, the dashboard returns ALL bookings across ALL businesses.
+        const businessId = await resolveBusinessId(req);
+
+        const { data, error } = await getBookings(businessId);
         if (error) {
             console.error(`[${requestId}] Get bookings failed:`, error);
             return Response.json(
