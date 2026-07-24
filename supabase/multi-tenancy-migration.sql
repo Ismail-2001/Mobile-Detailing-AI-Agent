@@ -82,6 +82,16 @@ CREATE INDEX IF NOT EXISTS idx_bookings_sms_consent
   ON bookings (phone, business_id, sms_consent)
   WHERE sms_consent = true;
 
+-- MULTI-CHANNEL: Track which channel each conversation came from
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'web';
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_source ON chat_sessions (source);
+
+-- Meta integration: page_id and instagram_id for business resolution
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS page_id TEXT;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_businesses_page_id ON businesses (page_id) WHERE page_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_businesses_instagram_id ON businesses (instagram_id) WHERE instagram_id IS NOT NULL;
+
 -- DAILY SUMMARY: Track daily digest send status per business
 CREATE TABLE IF NOT EXISTS daily_summaries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
